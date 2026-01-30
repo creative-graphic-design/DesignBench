@@ -1,11 +1,12 @@
-import json
 import os
 
 from PIL import Image
+from tqdm import tqdm
 from tqdm.auto import tqdm
 
 from .config import Framework, Task, folder_dic, format_dic
 from .metric import clip_similarity, mae_score, ssim_similarity
+from .metric_ast import ast_code_similarity
 from .metric_utils import render_ui
 
 
@@ -122,6 +123,10 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                 "clip_similarity": 0,
                 "structure_similarity": 0,
                 "issue accuracy": 0,
+                "code_score": 0,
+                "ast_code_op_score": 0,  # CMLS
+                "ast_code_content_score": 0,
+                "ast_code_content_weighted_score": 0,  # CMCS
             }
             return metrics
 
@@ -175,6 +180,15 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     reference_code=reference_angular_code,
                     generated_code=generated_code,
                 )
+                angular_ast_code_op_score, angular_ast_code_content_score = (
+                    ast_code_similarity(
+                        src_code=src_angular_code,
+                        reference_code=reference_angular_code,
+                        generated_code=generated_code,
+                        framework="vanilla",
+                    )
+                )
+
                 print("angular score:", angular_code_score)
                 src_ts_code = src_code["ts"]
                 # reference_ts_code = reference_code["ts"]
@@ -190,6 +204,13 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     # generated_code = remove_comments(f_code.read())
                     generated_code = f_code.read()
 
+                ts_ast_code_op_score, ts_ast_code_content_score = ast_code_similarity(
+                    src_code=src_ts_code,
+                    reference_code=reference_ts_code,
+                    generated_code=generated_code,
+                    framework=framework,
+                )
+
                 ts_code_score = code_similarity(
                     src_code=src_ts_code,
                     reference_code=reference_ts_code,
@@ -198,6 +219,13 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
 
                 print("ts score:", ts_code_score)
                 code_score = 0.5 * angular_code_score + 0.5 * ts_code_score
+                ast_code_op_score = (
+                    0.5 * ts_ast_code_op_score + 0.5 * angular_ast_code_op_score
+                )
+                ast_code_content_score = (
+                    0.5 * ts_ast_code_content_score
+                    + 0.5 * angular_ast_code_content_score
+                )
             else:
                 if framework == "react":
                     src_code = remove_comments(src_code)
@@ -208,6 +236,13 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     src_code=src_code,
                     reference_code=reference_code,
                     generated_code=generated_code,
+                )
+
+                ast_code_op_score, ast_code_content_score = ast_code_similarity(
+                    src_code=src_code,
+                    reference_code=reference_code,
+                    generated_code=generated_code,
+                    framework=framework,
                 )
 
             reference_img = Image.open(reference_img_path)
@@ -231,6 +266,10 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                 "structure_similarity": ssim_score,
                 "code_score": code_score,
                 "issue accuracy": issue_flag,
+                "ast_code_op_score": ast_code_op_score,  # CMLS
+                "ast_code_content_score": ast_code_content_score,
+                "ast_code_content_weighted_score": ast_code_op_score
+                * ast_code_content_score,  # CMCS
             }
 
     return metrics
@@ -271,6 +310,9 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
                 "clip_similarity": 0,
                 "structure_similarity": 0,
                 "code_score": 0,
+                "ast_code_op_score": 0,  # CMLS
+                "ast_code_content_score": 0,
+                "ast_code_content_weighted_score": 0,  # CMCS
             }
             return metrics
 
@@ -313,6 +355,15 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     generated_code=generated_code,
                 )
 
+                angular_ast_code_op_score, angular_ast_code_content_score = (
+                    ast_code_similarity(
+                        src_code=src_angular_code,
+                        reference_code=reference_angular_code,
+                        generated_code=generated_code,
+                        framework="vanilla",
+                    )
+                )
+
                 print("angular score:", angular_code_score)
 
                 src_ts_code = src_code["ts"]
@@ -330,13 +381,33 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     generated_code=generated_code,
                 )
 
+                ts_ast_code_op_score, ts_ast_code_content_score = ast_code_similarity(
+                    src_code=src_ts_code,
+                    reference_code=reference_ts_code,
+                    generated_code=generated_code,
+                    framework=framework,
+                )
+
                 print("ts score:", ts_code_score)
                 code_score = 0.5 * angular_code_score + 0.5 * ts_code_score
+                ast_code_op_score = (
+                    0.5 * ts_ast_code_op_score + 0.5 * angular_ast_code_op_score
+                )
+                ast_code_content_score = (
+                    0.5 * ts_ast_code_content_score
+                    + 0.5 * angular_ast_code_content_score
+                )
             else:
                 code_score = code_similarity(
                     src_code=src_code,
                     reference_code=reference_code,
                     generated_code=generated_code,
+                )
+                ast_code_op_score, ast_code_content_score = ast_code_similarity(
+                    src_code=src_code,
+                    reference_code=reference_code,
+                    generated_code=generated_code,
+                    framework=framework,
                 )
 
             reference_img = Image.open(reference_img_path)
@@ -350,6 +421,10 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
                 "clip_similarity": cp_score,
                 "structure_similarity": ssim_score,
                 "code_score": code_score,
+                "ast_code_op_score": ast_code_op_score,  # CMLS
+                "ast_code_content_score": ast_code_content_score,
+                "ast_code_content_weighted_score": ast_code_op_score
+                * ast_code_content_score,  # CMCS
             }
 
     return metrics
@@ -519,10 +594,10 @@ if __name__ == "__main__":
     evaluate_edit(
         models=models, frame_works=frame_works, modes=modes, llm_judge_flag=False
     )
-    # evaluate_repair(models=models, frame_works=frame_works, modes=modes, llm_judge_flag=False)
     evaluate_repair(
-        models=models, frame_works=frame_works, modes=modes, llm_judge_flag=True
+        models=models, frame_works=frame_works, modes=modes, llm_judge_flag=False
     )
+    # evaluate_repair(models=models, frame_works=frame_works, modes=modes, llm_judge_flag=True)
 
     # frame_works = ["react"]
     # implemented_frame_works = ["react"]
