@@ -5,6 +5,7 @@ import re
 import subprocess
 import time
 
+from loguru import logger
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
@@ -184,7 +185,7 @@ def render_ui(code_path, save_path, frame_work):
     # ToDo: input the generated code file path (e.g., /DesignEdit/1/result/1-gemini.html),
     #  save the screenshot of the image (e.g., /DesignEdit/1/result/1-gemini.png)
 
-    print(code_path)
+    logger.info(code_path)
     if frame_work == "vanilla":
         print("render vanilla")
         try:
@@ -294,7 +295,7 @@ def run_angular_app(
 
                     if "ERROR" in line:
                         compilation_success = False
-                        print("ERROR")
+                        logger.warning("ERROR")
 
                     if "Watch mode enabled" in line:
                         if not compilation_success:

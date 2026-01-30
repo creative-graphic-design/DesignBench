@@ -117,30 +117,32 @@ def collect_compile_information(task_name, frame_work, implemented_framework_or_
     json_path = ""
     base_folder = ""
 
-    if task_name == Task.GENERATION:
+    if task_name == Task.generation:
         json_path = (
-            f"./res/DesignGeneration/{frame_work}_{implemented_framework_or_mode}.json"
+            DesignBench_Path
+            + f"res/DesignGeneration/{frame_work}_{implemented_framework_or_mode}.json"
         )
         base_folder = (
             DesignBench_Path
-            + f"data/DesignGeneration/GenerationResults/{frame_work}-{implemented_framework_or_mode}"
+            + f"data/generation/GenerationResults/{frame_work}-{implemented_framework_or_mode}"
         )
 
-    if task_name == Task.EDIT:
+    if task_name == Task.edit:
         json_path = (
-            f"./res/DesignEdit/{frame_work}_{implemented_framework_or_mode}.json"
-        )
-        base_folder = (
-            DesignBench_Path + f"data/DesignEdit/EditResults/{frame_work}-{frame_work}"
-        )
-
-    if task_name == Task.REPAIR:
-        json_path = (
-            f"./res/DesignRepair/{frame_work}_{implemented_framework_or_mode}.json"
-        )
-        base_folder = (
             DesignBench_Path
-            + f"data/DesignRepair/RepairResults/{frame_work}-{frame_work}"
+            + f"res/DesignEdit/{frame_work}_{implemented_framework_or_mode}.json"
+        )
+        base_folder = (
+            DesignBench_Path + f"data/edit/EditResults/{frame_work}-{frame_work}"
+        )
+
+    if task_name == Task.repair:
+        json_path = (
+            DesignBench_Path
+            + f"res/DesignRepair/{frame_work}_{implemented_framework_or_mode}.json"
+        )
+        base_folder = (
+            DesignBench_Path + f"data/repair/RepairResults/{frame_work}-{frame_work}"
         )
 
     # if not os.path.isfile(json_path):

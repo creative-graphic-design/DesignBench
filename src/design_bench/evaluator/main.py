@@ -5,7 +5,7 @@ from loguru import logger
 from PIL import Image
 from tqdm.auto import tqdm
 
-from .config import Framework, Task, folder_dic, format_dic
+from .config import DesignBench_Path, Framework, Task, folder_dic, format_dic
 from .metric import (
     clip_similarity,
     code_similarity,
@@ -199,7 +199,7 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     )
                 )
 
-                print("angular score:", angular_code_score)
+                logger.info(f"angular score: {angular_code_score}")
                 src_ts_code = src_code["ts"]
                 # reference_ts_code = reference_code["ts"]
 
@@ -227,7 +227,7 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     generated_code=generated_code,
                 )
 
-                print("ts score:", ts_code_score)
+                logger.info(f"ts score: {ts_code_score}")
                 code_score = 0.5 * angular_code_score + 0.5 * ts_code_score
                 ast_code_op_score = (
                     0.5 * ts_ast_code_op_score + 0.5 * angular_ast_code_op_score
@@ -445,7 +445,9 @@ def evaluate_repair(models, frame_works, modes, llm_judge_flag):
         iterate_range = get_begin_end(framework=frame_work, task=Task.repair)
         for model_name in models:
             for mode in modes:
-                res_path = f"./res/DesignRepair/{frame_work}_{mode}.json"
+                res_path = (
+                    DesignBench_Path + f"res/DesignRepair/{frame_work}_{mode}.json"
+                )
                 if os.path.exists(res_path):
                     with open(res_path, "r") as fs:
                         results = json.loads(fs.read())
@@ -496,7 +498,7 @@ def evaluate_edit(models, frame_works, modes, llm_judge_flag):
         iterate_range = get_begin_end(framework=frame_work, task=Task.edit)
         for model_name in models:
             for mode in modes:
-                res_path = f"./res/DesignEdit/{frame_work}_{mode}.json"
+                res_path = DesignBench_Path + f"res/DesignEdit/{frame_work}_{mode}.json"
                 if os.path.exists(res_path):
                     with open(res_path, "r") as fs:
                         results = json.loads(fs.read())
@@ -519,7 +521,7 @@ def evaluate_edit(models, frame_works, modes, llm_judge_flag):
                             llm_judge_flag=False,
                         )
                         results[model_name][str(web_name)] = metric
-                        print(metric)
+                        logger.info(metric)
                     else:
                         try:
                             if "llm score" in results[model_name][str(web_name)]:
@@ -547,7 +549,10 @@ def evaluate_generation(models, frame_works, implemented_frameworks):
         iterate_range = get_begin_end(framework=frame_work, task=Task.generation)
 
         for implement_framework in implemented_frameworks:
-            res_path = f"./res/DesignGeneration/{frame_work}_{implement_framework}.json"
+            res_path = (
+                DesignBench_Path
+                + f"res/DesignGeneration/{frame_work}_{implement_framework}.json"
+            )
             if os.path.exists(res_path):
                 with open(res_path, "r") as fs:
                     results = json.loads(fs.read())
@@ -574,8 +579,12 @@ def evaluate_generation(models, frame_works, implemented_frameworks):
                     )
                     results[model_name][web_name] = metrics
 
+            from .config import DesignBench_Path
+
             with open(
-                f"res/DesignGeneration/{frame_work}_{implement_framework}.json", "w"
+                DesignBench_Path
+                + f"res/DesignGeneration/{frame_work}_{implement_framework}.json",
+                "w",
             ) as fs:
                 fs.write(json.dumps(results, indent=4))
 

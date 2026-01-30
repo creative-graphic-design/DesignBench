@@ -47,7 +47,7 @@ def main():
             continue
         for mode in modes:
             collect_compile_information(
-                task_name=Task.EDIT,
+                task_name=Task.edit,
                 frame_work=frame_work,
                 implemented_framework_or_mode=mode,
             )
