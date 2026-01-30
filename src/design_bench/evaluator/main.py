@@ -1,7 +1,6 @@
 import os
 
 from PIL import Image
-from tqdm import tqdm
 from tqdm.auto import tqdm
 
 from .config import Framework, Task, folder_dic, format_dic

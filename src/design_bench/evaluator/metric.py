@@ -292,9 +292,6 @@ def llm_repair_judge(original_image, repaired_image, reference_image, issues):
     return response
 
 
-with open(key_path, "r") as fs:
-    keys = json.loads(fs.read())
-
 EDIT_JUDGE_SYSTEM_PROMPT = """
 ## Task Description
 You are evaluating whether an edited UI screenshot properly implements a user's instructions for modifications. The user provides you with:
@@ -356,7 +353,7 @@ Please provide the following information and combine them into json format:
 
 @retry.retry(tries=3, delay=2)
 def gpt_edit_judge(model_name, original_image, edited_image, prompt):
-    openai_client = OpenAI(api_key=keys["gpt"], base_url="https://openkey.cloud/v1")
+    openai_client = OpenAI()
 
     response = openai_client.chat.completions.create(
         model=model_name,
@@ -482,7 +479,7 @@ Please provide the following information and combine them into json format:
 def gpt_repair_judge(
     model_name, original_image, repaired_image, reference_image, prompt
 ):
-    openai_client = OpenAI(api_key=keys["gpt"], base_url="https://openkey.cloud/v1")
+    openai_client = OpenAI()
 
     response = openai_client.chat.completions.create(
         model=model_name,
