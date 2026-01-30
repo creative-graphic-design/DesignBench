@@ -1,15 +1,17 @@
-import cv2
-import difflib
-import torch
-from PIL import Image
-from torch.nn.functional import cosine_similarity
-import clip
-import numpy as np
-from skimage.metrics import structural_similarity as ssim
-from metric_utils import *
 import base64
+import difflib
+
+import clip
+import cv2
+import numpy as np
 import retry
+import torch
 from openai import OpenAI
+from PIL import Image
+from skimage.metrics import structural_similarity as ssim
+from torch.nn.functional import cosine_similarity
+
+from .metric_utils import *
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
