@@ -1,6 +1,10 @@
+from dotenv import load_dotenv
+
 from design_bench.evaluator.compile import collect_compile_information
 from design_bench.evaluator.config import Task
 from design_bench.evaluator.main import evaluate_edit
+
+load_dotenv()
 
 
 def main():
