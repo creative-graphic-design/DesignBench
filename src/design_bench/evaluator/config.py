@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 from typing import Dict, Final
 
-DesignBench_Path = ""
+DesignBench_Path = "/root/ghq/github.com/creative-graphic-design/DesignBench/"
 
 
 class Framework(StrEnum):
@@ -55,6 +55,6 @@ project_code_path_dic: Final[Dict[Framework, str]] = {
 format_dic: Final[Dict[Framework, str]] = {
     Framework.vue: "vue",
     Framework.react: "jsx",
-    Framework.value: "html",
+    Framework.vanilla: "html",
     Framework.angular: "angular",
 }

@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+from loguru import logger
+from tqdm import tqdm
 
 from design_bench.evaluator.compile import collect_compile_information
 from design_bench.evaluator.config import Task
@@ -8,6 +10,9 @@ load_dotenv()
 
 
 def main():
+    logger.remove()
+    logger.add(lambda msg: tqdm.write(msg, end=""))
+
     models = [
         # "claude-3-7-sonnet-20250219",
         "gpt-4o-2024-11-20",

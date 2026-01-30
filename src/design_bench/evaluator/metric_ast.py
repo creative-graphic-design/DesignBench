@@ -13,6 +13,8 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
+from loguru import logger
+
 
 @dataclass
 class ASTNode:
@@ -634,7 +636,7 @@ class ASTEditSimilarity:
                     before_code, gt_code, pred_code, file_type
                 )
         except Exception as e:
-            print(f"Error calculating AST similarity: {e}")
+            logger.warning(f"Error calculating AST similarity: {e}")
             import traceback
 
             traceback.print_exc()
@@ -662,26 +664,26 @@ class ASTEditSimilarity:
     ) -> Dict[str, float]:
         """Full AST-based similarity (requires Node.js)"""
         # Parse all versions
-        print("Parsing before_code...")
+        logger.info("Parsing before_code...")
         before_ast = self.parser.parse(before_code, file_type)
-        print("Parsing gt_code...")
+        logger.info("Parsing gt_code...")
         gt_ast = self.parser.parse(gt_code, file_type)
-        print("Parsing pred_code...")
+        logger.info("Parsing pred_code...")
         pred_ast = self.parser.parse(pred_code, file_type)
 
         # Extract operations
-        print("Extracting GT operations...")
+        logger.info("Extracting GT operations...")
         gt_ops = ASTDiffer.extract_operations(before_ast, gt_ast)
-        print(f"Found {len(gt_ops)} GT operations")
+        logger.info(f"Found {len(gt_ops)} GT operations")
 
-        print("Extracting pred operations...")
+        logger.info("Extracting pred operations...")
         pred_ops = ASTDiffer.extract_operations(before_ast, pred_ast)
-        print(f"Found {len(pred_ops)} pred operations")
+        logger.info(f"Found {len(pred_ops)} pred operations")
 
         # Match operations (find common edit locations)
-        print("Matching operations...")
+        logger.info("Matching operations...")
         matched_pairs = self._match_operations(gt_ops, pred_ops)
-        print(f"Matched {len(matched_pairs)} operation pairs")
+        logger.info(f"Matched {len(matched_pairs)} operation pairs")
 
         # Calculate operation similarity (where the edits are)
         ast_op = (
@@ -698,22 +700,22 @@ class ASTEditSimilarity:
             [self._extract_op_content(op2) for _, op2 in matched_pairs]
         )
 
-        print(f"GT matched content length: {len(gt_matched_content)}")
-        print(f"Pred matched content length: {len(pred_matched_content)}")
+        logger.info(f"GT matched content length: {len(gt_matched_content)}")
+        logger.info(f"Pred matched content length: {len(pred_matched_content)}")
 
         # Calculate BLEU score on matched content only
         if gt_matched_content and pred_matched_content:
-            print("Calculating BLEU on matched operations...")
+            logger.info("Calculating BLEU on matched operations...")
             bleu_results = CodeBLEUCalculator.compute_bleu(
                 gt_matched_content, pred_matched_content
             )
 
-            print("Calculating CodeBLEU on matched operations...")
+            logger.info("Calculating CodeBLEU on matched operations...")
             codebleu_results = CodeBLEUCalculator.compute_codebleu(
                 gt_matched_content, pred_matched_content, gt_ast, pred_ast
             )
         else:
-            print("No matched content found, using fallback scores")
+            logger.info("No matched content found, using fallback scores")
             if len(pred_ops) == 0 and len(gt_ops) == 0:
                 bleu_results = {
                     "bleu": 1.0,
@@ -1241,10 +1243,10 @@ function Button() {
         before_code=before_code, gt_code=gt_code, pred_code=pred_code, file_type="jsx"
     )
 
-    print("AST Edit Similarity Results:")
-    print(f"  AST-TED (Tree Edit Distance):  {results['ast_ted']:.4f}")
-    print(f"  AST-OP (Operation Matching):   {results['ast_op']:.4f}")
-    print(f"  AST-ES (Combined):             {results['ast_es']:.4f}")
+    logger.info("AST Edit Similarity Results:")
+    logger.info(f"  AST-TED (Tree Edit Distance):  {results['ast_ted']:.4f}")
+    logger.info(f"  AST-OP (Operation Matching):   {results['ast_op']:.4f}")
+    logger.info(f"  AST-ES (Combined):             {results['ast_es']:.4f}")
 
     return results
 
@@ -1279,28 +1281,30 @@ def ast_code_similarity(src_code, reference_code, generated_code, framework):
         file_type=framework_filetype_dic[framework],
     )
 
-    print("\n" + "=" * 70)
-    print("AST Edit Similarity Results (CodeBLEU on Matched Operations)")
-    print("=" * 70)
-    print(f"  AST-TED (Tree Edit Distance):     {results['ast_ted']:.4f}")
-    print(f"  AST-OP (Operation Matching):      {results['ast_op']:.4f}")
-    print(f"    - Matched operations:            {results['matched_ops']}")
-    print(f"    - Total GT operations:           {results['total_gt_ops']}")
-    print(f"    - Total Pred operations:         {results['total_pred_ops']}")
-    print("-" * 70)
-    print("BLEU Scores (on matched operations only):")
-    print(f"  BLEU:                             {results['bleu']:.4f}")
-    print(f"  BLEU-4:                           {results['bleu-4']:.4f}")
-    print("-" * 70)
-    print("CodeBLEU Components (on matched operations only):")
-    print(f"  CodeBLEU:                         {results['codebleu']:.4f}")
-    print(f"  N-gram Match:                     {results['ngram_match']:.4f}")
-    print(f"  Syntax Match:                     {results['syntax_match']:.4f}")
-    print(f"  Dataflow Match:                   {results['dataflow_match']:.4f}")
-    print("-" * 70)
-    print(f"  AST-MCS (Modified Content):       {results['ast_mcs']:.4f}")
-    print(f"  AST-ES (Combined Score):          {results['ast_es']:.4f}")
-    print("=" * 70 + "\n")
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("AST Edit Similarity Results (CodeBLEU on Matched Operations)")
+    logger.info("=" * 70)
+    logger.info(f"  AST-TED (Tree Edit Distance):     {results['ast_ted']:.4f}")
+    logger.info(f"  AST-OP (Operation Matching):      {results['ast_op']:.4f}")
+    logger.info(f"    - Matched operations:            {results['matched_ops']}")
+    logger.info(f"    - Total GT operations:           {results['total_gt_ops']}")
+    logger.info(f"    - Total Pred operations:         {results['total_pred_ops']}")
+    logger.info("-" * 70)
+    logger.info("BLEU Scores (on matched operations only):")
+    logger.info(f"  BLEU:                             {results['bleu']:.4f}")
+    logger.info(f"  BLEU-4:                           {results['bleu-4']:.4f}")
+    logger.info("-" * 70)
+    logger.info("CodeBLEU Components (on matched operations only):")
+    logger.info(f"  CodeBLEU:                         {results['codebleu']:.4f}")
+    logger.info(f"  N-gram Match:                     {results['ngram_match']:.4f}")
+    logger.info(f"  Syntax Match:                     {results['syntax_match']:.4f}")
+    logger.info(f"  Dataflow Match:                   {results['dataflow_match']:.4f}")
+    logger.info("-" * 70)
+    logger.info(f"  AST-MCS (Modified Content):       {results['ast_mcs']:.4f}")
+    logger.info(f"  AST-ES (Combined Score):          {results['ast_es']:.4f}")
+    logger.info("=" * 70)
+    logger.info("")
 
     # return results
     return results["ast_op"], results["ast_mcs"]
@@ -1327,16 +1331,17 @@ def compute_edit_bleu(src_code, reference_code, generated_code):
     # Calculate BLEU
     bleu_results = CodeBLEUCalculator.compute_bleu(gt_modified, pred_modified)
 
-    print("\n" + "=" * 60)
-    print("BLEU Scores on Modified Code:")
-    print("=" * 60)
-    print(f"  BLEU:      {bleu_results['bleu']:.4f}")
-    print(f"  BLEU-1:    {bleu_results['bleu-1']:.4f}")
-    print(f"  BLEU-2:    {bleu_results['bleu-2']:.4f}")
-    print(f"  BLEU-3:    {bleu_results['bleu-3']:.4f}")
-    print(f"  BLEU-4:    {bleu_results['bleu-4']:.4f}")
-    print(f"  BP:        {bleu_results['bp']:.4f}")
-    print("=" * 60 + "\n")
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("BLEU Scores on Modified Code:")
+    logger.info("=" * 60)
+    logger.info(f"  BLEU:      {bleu_results['bleu']:.4f}")
+    logger.info(f"  BLEU-1:    {bleu_results['bleu-1']:.4f}")
+    logger.info(f"  BLEU-2:    {bleu_results['bleu-2']:.4f}")
+    logger.info(f"  BLEU-3:    {bleu_results['bleu-3']:.4f}")
+    logger.info(f"  BLEU-4:    {bleu_results['bleu-4']:.4f}")
+    logger.info(f"  BP:        {bleu_results['bp']:.4f}")
+    logger.info("=" * 60 + "\n")
 
     return bleu_results
 
