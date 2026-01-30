@@ -5,7 +5,6 @@ __all__ = [
     "Framework",
     "Task",
     "Mode",
-    
     "extract_code_snippet",
     "extract_repair_content",
 ]

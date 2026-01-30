@@ -54,10 +54,11 @@ YOU NEED TO OUTPUT BOTH HTML AND TS CODE.
 """
 
 
-def get_design_compile_repair_prompt(framework: Framework, mode: Mode, code: Union[str, Dict], error_info: str) -> Tuple[str, str]:
-    
+def get_design_compile_repair_prompt(
+    framework: Framework, mode: Mode, code: Union[str, Dict], error_info: str
+) -> Tuple[str, str]:
     system_prompt = "You are a helpful assistant."
-    
+
     if framework == Framework.VUE:
         prompt_template = COMPILE_ERROR_REPAIR_VUE_PROMPT.strip()
         code = f"```vue\n{code}\n```"
@@ -69,11 +70,11 @@ def get_design_compile_repair_prompt(framework: Framework, mode: Mode, code: Uni
         code = f"```angular\n{code['html']}\n```\n```ts\n{code['ts']}\n```"
     else:
         raise ValueError(f"Unsupported framework: {framework}")
-    
+
     if mode == Mode.CODE:
         prompt = prompt_template.format(code=code, error_info="")
     elif mode == Mode.BOTH:
-        error_info = f"The compile error information is as follows: \"{error_info}\"\n"
+        error_info = f'The compile error information is as follows: "{error_info}"\n'
         prompt = prompt_template.format(code=code, error_info=error_info)
     else:
         raise ValueError(f"Unsupported mode: {mode}")

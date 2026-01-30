@@ -16,6 +16,7 @@ __all__ = [
     "QwenChat",
 ]
 
+
 def get_model(model_name: str, **kwargs) -> MLLMChat:
     match model_name:
         case "gpt-4o-2024-11-20":
@@ -26,7 +27,10 @@ def get_model(model_name: str, **kwargs) -> MLLMChat:
             return GeminiChat(model_name, **kwargs)
         case "qwen2.5-vl-72b-instruct" | "qwen2.5-vl-7b-instruct":
             return QwenChat(model_name, **kwargs)
-        case "meta-llama/Llama-3.2-90B-Vision-Instruct" | "meta-llama/Llama-3.2-11B-Vision-Instruct":
+        case (
+            "meta-llama/Llama-3.2-90B-Vision-Instruct"
+            | "meta-llama/Llama-3.2-11B-Vision-Instruct"
+        ):
             return DeepInfraChat(model_name, **kwargs)
         case "pixtral-large-latest" | "pixtral-12b-2409":
             return MistralChat(model_name, **kwargs)

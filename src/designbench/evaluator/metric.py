@@ -27,15 +27,15 @@ def diff_files(file1_path, file2_path):
     modified_code = []
     try:
         # 读取两个文件的内容
-        with open(file1_path, 'r', encoding='utf-8') as f1:
+        with open(file1_path, "r", encoding="utf-8") as f1:
             file1_lines = f1.readlines()
 
-        with open(file2_path, 'r', encoding='utf-8') as f2:
+        with open(file2_path, "r", encoding="utf-8") as f2:
             file2_lines = f2.readlines()
 
         # 移除行尾的换行符，便于比较
-        file1_lines = [line.rstrip('\n') for line in file1_lines]
-        file2_lines = [line.rstrip('\n') for line in file2_lines]
+        file1_lines = [line.rstrip("\n") for line in file1_lines]
+        file2_lines = [line.rstrip("\n") for line in file2_lines]
 
         # 使用SequenceMatcher获取详细的差异
         matcher = difflib.SequenceMatcher(None, file1_lines, file2_lines)
@@ -46,7 +46,7 @@ def diff_files(file1_path, file2_path):
         has_diff = False
         # 输出差异块
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-            if tag == 'equal':
+            if tag == "equal":
                 continue  # 跳过相同的部分
 
             # for line_number in range(j1, j2+1):
@@ -55,7 +55,7 @@ def diff_files(file1_path, file2_path):
 
             has_diff = True
 
-            if tag == 'replace':
+            if tag == "replace":
                 # print(f"\n修改: 文件1的第 {i1 + 1}-{i2} 行 被修改为 文件2的第 {j1 + 1}-{j2} 行")
                 # print("原始内容:")
                 # for i in range(i1, i2):
@@ -66,15 +66,14 @@ def diff_files(file1_path, file2_path):
                     line_numbers.append(j + 1)
                     modified_code.append(file2_lines[j])
 
-            elif tag == 'delete':
+            elif tag == "delete":
                 # print(f"\n删除: 文件1的第 {i1 + 1}-{i2} 行在文件2中被删除")
                 # print("删除内容:")
                 for i in range(i1, i2):
                     line_numbers
                     # print(f"  文件1 行 {i + 1}: {file1_lines[i]}")
 
-
-            elif tag == 'insert':
+            elif tag == "insert":
                 # print(f"\n插入: 在文件2的第 {j1 + 1}-{j2} 行新增了内容")
                 # print("新增内容:")
                 for j in range(j1, j2):
@@ -118,9 +117,13 @@ def code_similarity(src_code, reference_code, generated_code):
     #
     # git_diff_lines(file1="code1", file2="code3")
 
-    line_numbers_ref, modified_code_ref = diff_files(file1_path="code1", file2_path="code2")
+    line_numbers_ref, modified_code_ref = diff_files(
+        file1_path="code1", file2_path="code2"
+    )
 
-    line_numbers_generated, modified_code_generated = diff_files(file1_path="code1", file2_path="code3")
+    line_numbers_generated, modified_code_generated = diff_files(
+        file1_path="code1", file2_path="code3"
+    )
 
     line_numbers_ref = set(line_numbers_ref)
     line_numbers_generated = set(line_numbers_generated)
@@ -171,7 +174,9 @@ def process_imgs(image1, image2, max_size):
     # Pad images to the new dimensions with random values
     def pad_image(image, new_width, new_height):
         # Create a random padded background with the new dimensions
-        random_padding = np.random.randint(0, 256, (new_height, new_width, 3), dtype=np.uint8)
+        random_padding = np.random.randint(
+            0, 256, (new_height, new_width, 3), dtype=np.uint8
+        )
         padded_image = Image.fromarray(random_padding)
 
         # Paste the original image onto the padded background (placing in the top-left corner)
@@ -246,7 +251,7 @@ def gemini_encode_image(image_path):
 # encoding image for gpt, claude, qwen, mistral, llama
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def llm_edit_judge(original_image, edited_image, instruction):
@@ -256,8 +261,12 @@ def llm_edit_judge(original_image, edited_image, instruction):
     edited_image = encode_image(edited_image)
     prompt = f"The edit instruction is {instruction}"
 
-    response = gpt_edit_judge(model_name="gpt-4o-2024-11-20", original_image=original_image, edited_image=edited_image,
-                              prompt=prompt)
+    response = gpt_edit_judge(
+        model_name="gpt-4o-2024-11-20",
+        original_image=original_image,
+        edited_image=edited_image,
+        prompt=prompt,
+    )
     return response
 
 
@@ -272,10 +281,13 @@ def llm_repair_judge(original_image, repaired_image, reference_image, issues):
     The third image is the ground-truth fixed UI screenshot.
     """
 
-    response = gpt_repair_judge(model_name="gpt-4o-2024-11-20", original_image=original_image,
-                                repaired_image=repaired_image, reference_image=reference_image,
-                                prompt=prompt)
-
+    response = gpt_repair_judge(
+        model_name="gpt-4o-2024-11-20",
+        original_image=original_image,
+        repaired_image=repaired_image,
+        reference_image=reference_image,
+        prompt=prompt,
+    )
 
     return response
 
@@ -344,45 +356,36 @@ Please provide the following information and combine them into json format:
 
 @retry.retry(tries=3, delay=2)
 def gpt_edit_judge(model_name, original_image, edited_image, prompt):
-    openai_client = OpenAI(
-        api_key=keys["gpt"],
-        base_url="https://openkey.cloud/v1"
-    )
+    openai_client = OpenAI(api_key=keys["gpt"], base_url="https://openkey.cloud/v1")
 
     response = openai_client.chat.completions.create(
         model=model_name,
         messages=[
-            {
-                "role": "system",
-                "content": EDIT_JUDGE_SYSTEM_PROMPT
-            },
+            {"role": "system", "content": EDIT_JUDGE_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
+                    {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{original_image}",
-                            "detail": "high"
+                            "detail": "high",
                         },
                     },
                     {
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{edited_image}",
-                            "detail": "high"
+                            "detail": "high",
                         },
                     },
                 ],
-            }
+            },
         ],
         max_tokens=4096,
         temperature=1,
-        seed=42
+        seed=42,
     )
 
     print(response)
@@ -476,53 +479,46 @@ Please provide the following information and combine them into json format:
 
 
 @retry.retry(tries=3, delay=2)
-def gpt_repair_judge(model_name, original_image, repaired_image, reference_image, prompt):
-    openai_client = OpenAI(
-        api_key=keys["gpt"],
-        base_url="https://openkey.cloud/v1"
-    )
+def gpt_repair_judge(
+    model_name, original_image, repaired_image, reference_image, prompt
+):
+    openai_client = OpenAI(api_key=keys["gpt"], base_url="https://openkey.cloud/v1")
 
     response = openai_client.chat.completions.create(
         model=model_name,
         messages=[
-            {
-                "role": "system",
-                "content": REPAIR_JUDGE_SYSTEM_PROMPT
-            },
+            {"role": "system", "content": REPAIR_JUDGE_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
+                    {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{original_image}",
-                            "detail": "high"
+                            "detail": "high",
                         },
                     },
                     {
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{repaired_image}",
-                            "detail": "high"
+                            "detail": "high",
                         },
                     },
                     {
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{reference_image}",
-                            "detail": "high"
+                            "detail": "high",
                         },
                     },
                 ],
-            }
+            },
         ],
         max_tokens=4096,
         temperature=1,
-        seed=42
+        seed=42,
     )
 
     print(response)

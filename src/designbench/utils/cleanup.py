@@ -8,16 +8,13 @@ from .format import Framework
 def modify_angular_component(code: str) -> str:
     substitutions = [
         # 1. Change the class name to NewComponent
-        (r'(export\s+class\s+)\w+Component\b', r'\1NewComponent'),
-        
+        (r"(export\s+class\s+)\w+Component\b", r"\1NewComponent"),
         # 2. Change the selector to 'app-new'
         (r'(selector\s*:\s*)(["\'])(.*?)(\2)', r"\1'app-new'"),
-        
         # 3. Change templateUrl to './new.component.html'
         (r'(templateUrl\s*:\s*)(["\'])(.*?)(\2)', r"\1'./new.component.html'"),
-        
         # 4. Change styleUrls to ['./new.component.css']
-        (r'(styleUrls\s*:\s*)\[[^\]]*\]', r"\1['./new.component.css']"),
+        (r"(styleUrls\s*:\s*)\[[^\]]*\]", r"\1['./new.component.css']"),
     ]
 
     for pattern, repl in substitutions:
@@ -25,9 +22,9 @@ def modify_angular_component(code: str) -> str:
 
     # 5. Add ngOnInit implementation if class is empty
     code = re.sub(
-        r'export class (\w+) implements OnInit \{\s*\}',
-        r'export class \1 implements OnInit {\n\n  ngOnInit(): void {\n    \n  }\n}',
-        code
+        r"export class (\w+) implements OnInit \{\s*\}",
+        r"export class \1 implements OnInit {\n\n  ngOnInit(): void {\n    \n  }\n}",
+        code,
     )
 
     return code
@@ -55,11 +52,15 @@ def extract_code_snippet(content: str, output_framework: Framework) -> Tuple[str
         return ts_code, html_code
 
 
-def extract_repair_content(content: str, output_framework: Framework) -> Tuple[List[str], str, Optional[str | Tuple[str, str]]]:
+def extract_repair_content(
+    content: str, output_framework: Framework
+) -> Tuple[List[str], str, Optional[str | Tuple[str, str]]]:
     issues, reasoning, code = "", "", ""
     if "[ISSUES]" in content and "[/ISSUES]" in content:
         try:
-            issues = json.loads(content.split("[ISSUES]")[-1].split("[/ISSUES]")[0].strip())
+            issues = json.loads(
+                content.split("[ISSUES]")[-1].split("[/ISSUES]")[0].strip()
+            )
         except json.JSONDecodeError:
             issues = []
     if "[REASONING]" in content and "[/REASONING]" in content:

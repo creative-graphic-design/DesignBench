@@ -9,7 +9,7 @@ from config import *
 
 def is_pure_white_image(image_path):
     try:
-        img = Image.open(image_path).convert('RGB')
+        img = Image.open(image_path).convert("RGB")
         img_array = np.array(img)
         return np.all(img_array == [255, 255, 255])
     except Exception:
@@ -23,12 +23,12 @@ def check_html_png(html_or_log_path, error_type):
         return "NULL"
 
     if error_type == "angular":
-        html_path = os.path.splitext(html_or_log_path)[0] + '.html'
+        html_path = os.path.splitext(html_or_log_path)[0] + ".html"
         if os.path.isfile(html_path):
             return "NULL"
 
         try:
-            with open(html_or_log_path, 'r', encoding='utf-8') as file:
+            with open(html_or_log_path, "r", encoding="utf-8") as file:
                 log_content = file.read()
                 print(log_content)
         except Exception:
@@ -43,15 +43,17 @@ def check_html_png(html_or_log_path, error_type):
         return "NULL"
 
     try:
-        with open(html_or_log_path, 'r', encoding='utf-8') as file:
+        with open(html_or_log_path, "r", encoding="utf-8") as file:
             html_content = file.read()
     except Exception:
         return "NULL"
 
     if error_type == "vue":
-        pattern = r'</span><span class=message-body part=message-body>(.*?)</span>'
+        pattern = r"</span><span class=message-body part=message-body>(.*?)</span>"
     elif error_type == "react":
-        pattern = r'style=color:var\(--color-ansi-truecolor\)>\×</span><span>(.*?)╭─\[</span>'
+        pattern = (
+            r"style=color:var\(--color-ansi-truecolor\)>\×</span><span>(.*?)╭─\[</span>"
+        )
     else:
         return "NULL"
 
@@ -60,7 +62,7 @@ def check_html_png(html_or_log_path, error_type):
     if match:
         return match.group(1)
     else:
-        png_path = os.path.splitext(html_or_log_path)[0] + '.png'
+        png_path = os.path.splitext(html_or_log_path)[0] + ".png"
         if os.path.isfile(png_path) and is_pure_white_image(png_path):
             return "blank"
         else:
@@ -69,7 +71,7 @@ def check_html_png(html_or_log_path, error_type):
 
 def batch_process(json_path, base_folder, error_type):
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         print(f"Cannot read JSON file {json_path}: {e}")
@@ -82,9 +84,9 @@ def batch_process(json_path, base_folder, error_type):
             continue
 
         for seq in data[model_name]:
-            seq_pattern = f'_{seq}_'
+            seq_pattern = f"_{seq}_"
             target_file = None
-            extension = '.log' if error_type == 'angular' else '.html'
+            extension = ".log" if error_type == "angular" else ".html"
 
             for file in os.listdir(model_folder):
                 if file.endswith(extension) and seq_pattern in file:
@@ -93,16 +95,16 @@ def batch_process(json_path, base_folder, error_type):
 
             if not target_file:
                 # print(f"Model {model_name} Number {seq} cannot find the corresponding {extension} file")
-                data[model_name][seq]['compile_error'] = "NULL"
+                data[model_name][seq]["compile_error"] = "NULL"
                 continue
 
             result = check_html_png(target_file, error_type)
             # print(f"Model {model_name}，Number {seq}，File {target_file}，Result:{result}")
 
-            data[model_name][seq]['compile_error'] = result
+            data[model_name][seq]["compile_error"] = result
 
     try:
-        with open(json_path, 'w', encoding='utf-8') as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
         print(f"JSON file：{json_path} is updated successfully!")
     except Exception as e:
@@ -114,18 +116,30 @@ def collect_compile_information(task_name, frame_work, implemented_framework_or_
     base_folder = ""
 
     if task_name == Task.GENERATION:
-        json_path = f"./res/DesignGeneration/{frame_work}_{implemented_framework_or_mode}.json"
-        base_folder = DesignBench_Path + f"data/DesignGeneration/GenerationResults/{frame_work}-{implemented_framework_or_mode}"
+        json_path = (
+            f"./res/DesignGeneration/{frame_work}_{implemented_framework_or_mode}.json"
+        )
+        base_folder = (
+            DesignBench_Path
+            + f"data/DesignGeneration/GenerationResults/{frame_work}-{implemented_framework_or_mode}"
+        )
 
     if task_name == Task.EDIT:
-        json_path = f"./res/DesignEdit/{frame_work}_{implemented_framework_or_mode}.json"
-        base_folder = DesignBench_Path + f"data/DesignEdit/EditResults/{frame_work}-{frame_work}"
-
+        json_path = (
+            f"./res/DesignEdit/{frame_work}_{implemented_framework_or_mode}.json"
+        )
+        base_folder = (
+            DesignBench_Path + f"data/DesignEdit/EditResults/{frame_work}-{frame_work}"
+        )
 
     if task_name == Task.REPAIR:
-        json_path = f"./res/DesignRepair/{frame_work}_{implemented_framework_or_mode}.json"
-        base_folder = DesignBench_Path + f"data/DesignRepair/RepairResults/{frame_work}-{frame_work}"
-
+        json_path = (
+            f"./res/DesignRepair/{frame_work}_{implemented_framework_or_mode}.json"
+        )
+        base_folder = (
+            DesignBench_Path
+            + f"data/DesignRepair/RepairResults/{frame_work}-{frame_work}"
+        )
 
     # if not os.path.isfile(json_path):
     #     print(f"JSON file {json_path} not found")
@@ -162,7 +176,8 @@ if __name__ == "__main__":
     # implemented_frameworks = ["both"]
     for frame_work in frame_works:
         for implemented in implemented_frameworks:
-            collect_compile_information(task_name=Task.REPAIR, frame_work=frame_work, implemented_framework_or_mode=implemented)
-
-
-
+            collect_compile_information(
+                task_name=Task.REPAIR,
+                frame_work=frame_work,
+                implemented_framework_or_mode=implemented,
+            )

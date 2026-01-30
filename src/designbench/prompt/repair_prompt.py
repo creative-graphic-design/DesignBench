@@ -268,11 +268,16 @@ export class NewComponent {
 """
 
 
-def get_design_repair_prompt(output_framework: Framework, mode: Mode, code: Union[str, Dict]) -> Tuple[str, str]:
-    
+def get_design_repair_prompt(
+    output_framework: Framework, mode: Mode, code: Union[str, Dict]
+) -> Tuple[str, str]:
     # ========== Design Repair System Prompt ==========
-    extra_info = ", the design issues are are marked by red bounding boxes" if mode == Mode.MARK else ""
-    
+    extra_info = (
+        ", the design issues are are marked by red bounding boxes"
+        if mode == Mode.MARK
+        else ""
+    )
+
     if output_framework == Framework.VANILLA:
         introduction = "You are an expert HTML/CSS developer."
         output_format = VANILLA_OUTPUT_FORMAT.strip()
@@ -287,14 +292,11 @@ def get_design_repair_prompt(output_framework: Framework, mode: Mode, code: Unio
         output_format = ANGULAR_OUTPUT_FORMAT.strip()
     else:
         raise ValueError(f"Unsupported framework: {output_framework.value}")
-    
+
     system_prompt = REPAIR_GENERIC_SYSTEM_PROMPT_TEMPLATE.format(
-        introduction=introduction,
-        extra_info=extra_info,
-        output_format=output_format
+        introduction=introduction, extra_info=extra_info, output_format=output_format
     ).strip()
-    
-    
+
     # ========== Design Repair Prompt ==========
     if output_framework == Framework.ANGULAR:
         ts_code = code["ts"]
@@ -302,9 +304,9 @@ def get_design_repair_prompt(output_framework: Framework, mode: Mode, code: Unio
         code_message = f"The Angular HTML code:\n```angular\n{html_code}\n```\nThe TypeScript code:\n```ts\n{ts_code}\n```"
     else:
         code_message = f"The code is {code}."
-    
+
     image_message = "The screenshot:"
-    
+
     if mode == Mode.CODE:
         prompt = code_message
     elif mode == Mode.IMAGE:
@@ -315,4 +317,3 @@ def get_design_repair_prompt(output_framework: Framework, mode: Mode, code: Unio
         raise ValueError(f"Unsupported mode: {mode.value}")
 
     return system_prompt, prompt
-    

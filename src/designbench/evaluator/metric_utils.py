@@ -12,7 +12,9 @@ from config import *
 
 
 class WebDriver:
-    def __init__(self, browser_name='firefox', url=None, file=None, string=None, headless=None):
+    def __init__(
+        self, browser_name="firefox", url=None, file=None, string=None, headless=None
+    ):
         self.browser_name = browser_name
         self.init_url = None
         self.headless = headless
@@ -34,7 +36,7 @@ class WebDriver:
             driver.get("file:///" + os.getcwd() + "/" + self.file)
             self.init_url = "file:///" + os.getcwd() + "/" + self.file
         elif self.string:
-            string = base64.b64encode(self.string.encode('utf-8')).decode()
+            string = base64.b64encode(self.string.encode("utf-8")).decode()
             driver.get("data:text/html;base64," + string)
         elif self.url:
             driver.get(self.url)
@@ -63,11 +65,11 @@ def validate_issue(res_path, config_path):
         # generated_issue = generated["Display issues"]
         generated_issue = generated["Issues"]
 
-    if not (type(issues) is list):
+    if type(issues) is not list:
         issues = set([issues])
     else:
         issues = set(issues)
-    if not (type(generated_issue) is list):
+    if type(generated_issue) is not list:
         generated_issue = set([generated_issue])
     else:
         generated_issue = set(generated_issue)
@@ -78,7 +80,9 @@ def validate_issue(res_path, config_path):
     if len(generated_issue) >= 5 or len(generated_issue) == 0:
         return 0
     else:
-        return len(issues.intersection(generated_issue)) / len(issues.union(generated_issue))
+        return len(issues.intersection(generated_issue)) / len(
+            issues.union(generated_issue)
+        )
 
 
 # def remove_comments(file_path):
@@ -104,22 +108,22 @@ def remove_comments(content):
     result = content
 
     # 1. 移除多行JavaScript注释 (/* ... */)
-    result = re.sub(r'/\*[\s\S]*?\*/', '', result)
+    result = re.sub(r"/\*[\s\S]*?\*/", "", result)
 
     # 2. 移除单行JavaScript注释 (// ...)
     # result = re.sub(r'//.*?$', '', result, flags=re.MULTILINE)
 
     # 3. 如果是Vue文件，移除HTML注释 (<!-- ... -->)
     # if file_path.endswith('.vue'):
-    result = re.sub(r'<!--[\s\S]*?-->', '', result)
+    result = re.sub(r"<!--[\s\S]*?-->", "", result)
 
     # 4. 移除空行（包括只有空白字符的行）
     # 首先按行分割
-    lines = result.split('\n')
+    lines = result.split("\n")
     # 过滤掉空行或只包含空白字符的行
     non_empty_lines = [line for line in lines if line.strip()]
     # 重新组合成文本
-    result = '\n'.join(non_empty_lines)
+    result = "\n".join(non_empty_lines)
 
     # 4. 处理特殊情况：保留有用的正则表达式中的注释符号
     # 例如 let regex = /\/\//; 不应被错误处理
@@ -132,7 +136,9 @@ def save_html(link, filename):
     os.system(f"npx single-file {link} {filename}")
 
 
-def render_framework_ui(generated_code_path, project_code_path, deployed_link, save_path):
+def render_framework_ui(
+    generated_code_path, project_code_path, deployed_link, save_path
+):
     # print(project_code_path)
     with open(generated_code_path, "r") as f_code:
         generated_code = f_code.read()
@@ -151,10 +157,12 @@ def render_framework_ui(generated_code_path, project_code_path, deployed_link, s
         return run_angular_app(file_name=save_path)
 
     time.sleep(2)
-    web_driver = WebDriver(browser_name='firefox', url=deployed_link, file=None, string=None, headless=True)
+    web_driver = WebDriver(
+        browser_name="firefox", url=deployed_link, file=None, string=None, headless=True
+    )
 
     WebDriverWait(web_driver.driver, 30).until(
-        lambda d: d.execute_script('return document.readyState') == 'complete'
+        lambda d: d.execute_script("return document.readyState") == "complete"
     )
     time.sleep(2)
     # save_path = generated_code_path.replace(".html", ".png")
@@ -173,7 +181,13 @@ def render_ui(code_path, save_path, frame_work):
     if frame_work == "vanilla":
         print("render vanilla")
         try:
-            web_driver = WebDriver(browser_name='firefox', url=None, file=code_path, string=None, headless=True)
+            web_driver = WebDriver(
+                browser_name="firefox",
+                url=None,
+                file=code_path,
+                string=None,
+                headless=True,
+            )
             web_driver.take_screenshot(filename=save_path)
             web_driver.quit()
         except Exception as e:
@@ -182,13 +196,17 @@ def render_ui(code_path, save_path, frame_work):
         finally:
             return True
     else:
-        return render_framework_ui(generated_code_path=code_path,
-                                   project_code_path=project_code_path_dic[frame_work],
-                                   deployed_link=deploy_link_dic[frame_work],
-                                   save_path=save_path)
+        return render_framework_ui(
+            generated_code_path=code_path,
+            project_code_path=project_code_path_dic[frame_work],
+            deployed_link=deploy_link_dic[frame_work],
+            save_path=save_path,
+        )
 
 
-def run_angular_app(app_path=DesignBench_Path + "web/my-angular-app/", file_name="angular.png"):
+def run_angular_app(
+    app_path=DesignBench_Path + "web/my-angular-app/", file_name="angular.png"
+):
     """
     运行Angular应用并收集错误信息
 
@@ -220,16 +238,15 @@ def run_angular_app(app_path=DesignBench_Path + "web/my-angular-app/", file_name
 
     try:
         # 打开日志文件
-        with open(log_file, 'w', encoding='utf-8') as f:
-
+        with open(log_file, "w", encoding="utf-8") as f:
             # 运行ng serve命令，并实时捕获输出
             process = subprocess.Popen(
-                ['ng', 'serve', "--host", "0.0.0.0"],
+                ["ng", "serve", "--host", "0.0.0.0"],
                 cwd=app_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
-                bufsize=1
+                bufsize=1,
             )
 
             try:
@@ -243,18 +260,26 @@ def run_angular_app(app_path=DesignBench_Path + "web/my-angular-app/", file_name
                         compilation_success = True
                         print("success")
 
-                        web_driver = WebDriver(browser_name='firefox', url=deploy_link_dic["angular"], file=None,
-                                               string=None,
-                                               headless=True)
+                        web_driver = WebDriver(
+                            browser_name="firefox",
+                            url=deploy_link_dic["angular"],
+                            file=None,
+                            string=None,
+                            headless=True,
+                        )
 
                         WebDriverWait(web_driver.driver, 30).until(
-                            lambda d: d.execute_script('return document.readyState') == 'complete'
+                            lambda d: d.execute_script("return document.readyState")
+                            == "complete"
                         )
                         time.sleep(2)
                         # save_path = generated_code_path.replace(".html", ".png")
                         web_driver.take_screenshot(filename=file_name)
                         web_driver.quit()
-                        save_html(link=deploy_link_dic["angular"], filename=file_name.replace(".png", ".html"))
+                        save_html(
+                            link=deploy_link_dic["angular"],
+                            filename=file_name.replace(".png", ".html"),
+                        )
                         process.kill()
                         return True
                         # exit(1)

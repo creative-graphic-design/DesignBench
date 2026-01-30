@@ -139,6 +139,7 @@ Note: Use NewComponent as the component name and new.component.html and new.comp
 Do not output any extra information or comments.
 """
 
+
 def get_design_generation_prompt(output_framework: Framework) -> Tuple[str, str]:
     prompt = "The webpage screenshot:\n"
     if output_framework == Framework.VANILLA:
@@ -151,5 +152,5 @@ def get_design_generation_prompt(output_framework: Framework) -> Tuple[str, str]
         system_prompt = GENERATION_ANGULAR_TAILWIND_SYSTEM_PROMPT.strip()
     else:
         raise ValueError(f"Unsupported framework: {output_framework.value}")
-    
+
     return system_prompt, prompt

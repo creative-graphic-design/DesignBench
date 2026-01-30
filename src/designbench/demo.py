@@ -1,4 +1,4 @@
-#%%
+# %%
 from runner.main import Runner
 from utils import Framework, Task, Mode
 
@@ -18,10 +18,11 @@ runner.run(
     execution_range=(1, 2),  # Optional: specify execution indices
 )
 
-#%%
+# %%
 
 from evaluator.main import *
 from evaluator.compile import *
+
 models = [
     "claude-3-7-sonnet-20250219",
     "gpt-4o-2024-11-20",
@@ -31,27 +32,46 @@ models = [
     "pixtral-large-latest",
     "pixtral-12b-2409",
     "qwen2.5-vl-72b-instruct",
-    "qwen2.5-vl-7b-instruct"
-] # Evaluated MLLMs
+    "qwen2.5-vl-7b-instruct",
+]  # Evaluated MLLMs
 
-frame_works = ["react", "vue", "angular", "vanilla"] # the framework used to actually implement the webpage.
-implemented_frame_works = ["react", "vue", "angular", "vanilla"] # the framework used by the MLLMs.
+frame_works = [
+    "react",
+    "vue",
+    "angular",
+    "vanilla",
+]  # the framework used to actually implement the webpage.
+implemented_frame_works = [
+    "react",
+    "vue",
+    "angular",
+    "vanilla",
+]  # the framework used by the MLLMs.
 
 # eval
-evaluate_generation(models=models, frame_works=frame_works, implemented_frameworks=implemented_frame_works)
+evaluate_generation(
+    models=models,
+    frame_works=frame_works,
+    implemented_frameworks=implemented_frame_works,
+)
 
 # collect the compile information
 for frame_work in frame_works:
     if frame_work == "vanilla":
         continue
     for implemented in implemented_frame_works:
-        collect_compile_information(task_name=Task.GENERATION, frame_work=frame_work, implemented_framework_or_mode=implemented)
+        collect_compile_information(
+            task_name=Task.GENERATION,
+            frame_work=frame_work,
+            implemented_framework_or_mode=implemented,
+        )
 
 
-#%%
+# %%
 
 from evaluator.main import *
 from evaluator.compile import *
+
 models = [
     "claude-3-7-sonnet-20250219",
     "gpt-4o-2024-11-20",
@@ -61,11 +81,16 @@ models = [
     "pixtral-large-latest",
     "pixtral-12b-2409",
     "qwen2.5-vl-72b-instruct",
-    "qwen2.5-vl-7b-instruct"
+    "qwen2.5-vl-7b-instruct",
 ]
 
-frame_works = ["react", "vue", "angular", "vanilla"]  # the framework used to actually implement the webpage.
-modes = ["both", "code", "image"] # code, image, both
+frame_works = [
+    "react",
+    "vue",
+    "angular",
+    "vanilla",
+]  # the framework used to actually implement the webpage.
+modes = ["both", "code", "image"]  # code, image, both
 
 # eval
 evaluate_edit(models=models, frame_works=frame_works, modes=modes, llm_judge_flag=False)
@@ -76,12 +101,17 @@ for frame_work in frame_works:
     if frame_work == "vanilla":
         continue
     for mode in modes:
-        collect_compile_information(task_name=Task.EDIT, frame_work=frame_work, implemented_framework_or_mode=mode)
+        collect_compile_information(
+            task_name=Task.EDIT,
+            frame_work=frame_work,
+            implemented_framework_or_mode=mode,
+        )
 
-#%%
+# %%
 
 from evaluator.main import *
 from evaluator.compile import *
+
 models = [
     "claude-3-7-sonnet-20250219",
     "gpt-4o-2024-11-20",
@@ -91,19 +121,32 @@ models = [
     "pixtral-large-latest",
     "pixtral-12b-2409",
     "qwen2.5-vl-72b-instruct",
-    "qwen2.5-vl-7b-instruct"
+    "qwen2.5-vl-7b-instruct",
 ]
 
-frame_works = ["react", "vue", "angular", "vanilla"]  # the framework used to actually implement the webpage.
+frame_works = [
+    "react",
+    "vue",
+    "angular",
+    "vanilla",
+]  # the framework used to actually implement the webpage.
 modes = ["both", "code", "image"]  # code, image, both
 
 # eval
-evaluate_repair(models=models, frame_works=frame_works, modes=modes, llm_judge_flag=False)
-evaluate_repair(models=models, frame_works=frame_works, modes=modes, llm_judge_flag=True)
+evaluate_repair(
+    models=models, frame_works=frame_works, modes=modes, llm_judge_flag=False
+)
+evaluate_repair(
+    models=models, frame_works=frame_works, modes=modes, llm_judge_flag=True
+)
 
 # collect the compile information
 for frame_work in frame_works:
     if frame_work == "vanilla":
         continue
     for mode in modes:
-        collect_compile_information(task_name=Task.REPAIR, frame_work=frame_work, implemented_framework_or_mode=mode)
+        collect_compile_information(
+            task_name=Task.REPAIR,
+            frame_work=frame_work,
+            implemented_framework_or_mode=mode,
+        )

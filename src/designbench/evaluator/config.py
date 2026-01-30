@@ -3,6 +3,7 @@ from enum import Enum
 
 DesignBench_Path = "/Home/User/DesignBench/"
 
+
 class Framework(str, Enum):
     VANILLA = "vanilla"
     REACT = "react"
@@ -24,7 +25,6 @@ class Mode(str, Enum):
     MARK = "mark"
 
 
-
 key_path = DesignBench_Path + "code/prompting/key.json"
 
 firefox_path = DesignBench_Path + "code/evaluator/geckodriver"
@@ -44,7 +44,8 @@ deploy_link_dic = {
 project_code_path_dic = {
     Framework.VUE: DesignBench_Path + "web/my-vue-app/src/components/HelloWorld.vue",
     Framework.REACT: DesignBench_Path + "web/my-react-app/app/page.tsx",
-    Framework.ANGULAR: DesignBench_Path + "web/my-angular-app/src/app/new.component.html"
+    Framework.ANGULAR: DesignBench_Path
+    + "web/my-angular-app/src/app/new.component.html",
     # "angular": {
     #     "html": DesignBench_Path + "web/my-angular-app/app/new.component.html",
     #     "ts": DesignBench_Path + "web/my-angular-app/app/new.component.ts"
@@ -55,5 +56,5 @@ format_dic = {
     Framework.VUE: "vue",
     Framework.REACT: "jsx",
     Framework.VANILLA: "html",
-    Framework.ANGULAR: "angular"
+    Framework.ANGULAR: "angular",
 }
