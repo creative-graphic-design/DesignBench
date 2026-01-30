@@ -1,5 +1,6 @@
 import base64
 import difflib
+import os
 
 import clip
 import cv2
@@ -10,8 +11,6 @@ from openai import OpenAI
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
 from torch.nn.functional import cosine_similarity
-
-from .metric_utils import *
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
@@ -192,8 +191,8 @@ def process_imgs(image1, image2, max_size):
     new_size = (int(new_width * aspect_ratio), int(new_height * aspect_ratio))
 
     # Resize the padded images to the specified max size
-    resized_image1 = padded_image1.resize(new_size, Image.LANCZOS)
-    resized_image2 = padded_image2.resize(new_size, Image.LANCZOS)
+    resized_image1 = padded_image1.resize(new_size, Image.Resampling.LANCZOS)
+    resized_image2 = padded_image2.resize(new_size, Image.Resampling.LANCZOS)
 
     # resized_image1.show()
     # resized_image2.show()
@@ -353,7 +352,16 @@ Please provide the following information and combine them into json format:
 
 @retry.retry(tries=3, delay=2)
 def gpt_edit_judge(model_name, original_image, edited_image, prompt):
-    openai_client = OpenAI()
+    openai_client = OpenAI(
+        api_key=os.environ.get("OPENAI_API_KEY"),
+        base_url=os.environ.get("OPENAI_API_BASE_URL"),
+        default_headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
+            # "X-User-Id": "{employee_id}",  # 社員IDなどをproxyに送る時用、必須ではない
+            # "X-Title": "{your application name, etc}",  # 社内アプリの識別子用、必須ではない
+        },
+    )
 
     response = openai_client.chat.completions.create(
         model=model_name,

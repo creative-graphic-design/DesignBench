@@ -1,12 +1,22 @@
+import json
 import os
 
 from PIL import Image
 from tqdm.auto import tqdm
 
 from .config import Framework, Task, folder_dic, format_dic
-from .metric import clip_similarity, mae_score, ssim_similarity
+from .metric import (
+    clip_similarity,
+    code_similarity,
+    llm_edit_judge,
+    llm_repair_judge,
+    mae_score,
+    ssim_similarity,
+)
 from .metric_ast import ast_code_similarity
-from .metric_utils import render_ui
+from .metric_utils import remove_comments, render_ui, validate_issue
+
+re_calculate = False  # FIXME
 
 
 def get_begin_end(framework: Framework, task: Task) -> range:
@@ -570,8 +580,6 @@ def evaluate_generation(models, frame_works, implemented_frameworks):
 
 
 if __name__ == "__main__":
-    re_calculate = False
-
     models = [
         "claude-3-7-sonnet-20250219",
         "gpt-4o-2024-11-20",

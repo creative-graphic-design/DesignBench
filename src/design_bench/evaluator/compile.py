@@ -1,10 +1,12 @@
-import re
-import os
 import json
+import os
+import re
+
+import numpy as np
 import tqdm
 from PIL import Image
-import numpy as np
-from config import *
+
+from .config import DesignBench_Path, Task
 
 
 def is_pure_white_image(image_path):

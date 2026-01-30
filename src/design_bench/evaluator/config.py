@@ -1,50 +1,50 @@
-from enum import Enum
+from enum import StrEnum, auto
+from typing import Dict, Final
+
+DesignBench_Path = ""
 
 
-DesignBench_Path = "/Home/User/DesignBench/"
+class Framework(StrEnum):
+    vanilla = auto()
+    react = auto()
+    vue = auto()
+    angular = auto()
 
 
-class Framework(str, Enum):
-    VANILLA = "vanilla"
-    REACT = "react"
-    VUE = "vue"
-    ANGULAR = "angular"
+class Task(StrEnum):
+    repair = auto()
+    generation = auto()
+    edit = auto()
+    compile = auto()
 
 
-class Task(str, Enum):
-    REPAIR = "repair"
-    GENERATION = "generation"
-    EDIT = "edit"
-    COMPILE = "compile"
-
-
-class Mode(str, Enum):
-    CODE = "code"
-    IMAGE = "image"
-    BOTH = "both"
-    MARK = "mark"
+class Mode(StrEnum):
+    code = auto()
+    image = auto()
+    both = auto()
+    mark = auto()
 
 
 key_path = DesignBench_Path + "code/prompting/key.json"
 
 firefox_path = DesignBench_Path + "code/evaluator/geckodriver"
 
-folder_dic = {
-    Task.GENERATION: DesignBench_Path + "data/DesignGeneration/",
-    Task.EDIT: DesignBench_Path + "data/DesignEdit/",
-    Task.REPAIR: DesignBench_Path + "data/DesignRepair/",
+folder_dic: Final[Dict[Task, str]] = {
+    Task.generation: DesignBench_Path + "data/generation/",
+    Task.edit: DesignBench_Path + "data/edit/",
+    Task.repair: DesignBench_Path + "data/repair/",
 }
 
-deploy_link_dic = {
-    Framework.VUE: "http://localhost:5173/",  # npm run dev
-    Framework.REACT: "http://localhost:3000/",  # npm run dev
-    Framework.ANGULAR: "http://localhost:4200/",  # ng serve
+deploy_link_dic: Final[Dict[Framework, str]] = {
+    Framework.vue: "http://localhost:5173/",  # npm run dev
+    Framework.react: "http://localhost:3000/",  # npm run dev
+    Framework.angular: "http://localhost:4200/",  # ng serve
 }
 
-project_code_path_dic = {
-    Framework.VUE: DesignBench_Path + "web/my-vue-app/src/components/HelloWorld.vue",
-    Framework.REACT: DesignBench_Path + "web/my-react-app/app/page.tsx",
-    Framework.ANGULAR: DesignBench_Path
+project_code_path_dic: Final[Dict[Framework, str]] = {
+    Framework.vue: DesignBench_Path + "web/my-vue-app/src/components/HelloWorld.vue",
+    Framework.react: DesignBench_Path + "web/my-react-app/app/page.tsx",
+    Framework.angular: DesignBench_Path
     + "web/my-angular-app/src/app/new.component.html",
     # "angular": {
     #     "html": DesignBench_Path + "web/my-angular-app/app/new.component.html",
@@ -52,9 +52,9 @@ project_code_path_dic = {
     # }
 }
 
-format_dic = {
-    Framework.VUE: "vue",
-    Framework.REACT: "jsx",
-    Framework.VANILLA: "html",
-    Framework.ANGULAR: "angular",
+format_dic: Final[Dict[Framework, str]] = {
+    Framework.vue: "vue",
+    Framework.react: "jsx",
+    Framework.value: "html",
+    Framework.angular: "angular",
 }

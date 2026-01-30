@@ -1,14 +1,21 @@
-import subprocess
-import re
-from selenium.webdriver.firefox.service import Service
 import base64
-from selenium import webdriver
-import time
-import os
-from selenium.webdriver.firefox.options import Options
 import json
+import os
+import re
+import subprocess
+import time
+
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
-from config import *
+from webdriver_manager.firefox import GeckoDriverManager
+
+from .config import (
+    DesignBench_Path,
+    deploy_link_dic,
+    project_code_path_dic,
+)
 
 
 class WebDriver:
@@ -26,7 +33,7 @@ class WebDriver:
 
     def create_driver(self):
         # service = Service()
-        service = Service(executable_path=firefox_path)
+        service = Service(GeckoDriverManager().install())
         options = Options()
         if self.headless:
             options.add_argument("-headless")
