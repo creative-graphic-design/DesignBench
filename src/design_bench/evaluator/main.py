@@ -487,7 +487,7 @@ def evaluate_repair(models, frame_works, modes, llm_judge_flag):
                                 "llm score"
                             ]
                         except Exception as e:
-                            print(f"error for {web_name}", e)
+                            logger.warning(f"error for {web_name} {e}")
 
                 with open(res_path, "w") as fs:
                     fs.write(json.dumps(results, indent=4))
@@ -538,7 +538,7 @@ def evaluate_edit(models, frame_works, modes, llm_judge_flag):
                                 "llm score"
                             ]
                         except Exception as e:
-                            print(f"error for {web_name}", e)
+                            logger.warning(f"error for {web_name} {e}")
 
                 with open(res_path, "w") as fs:
                     fs.write(json.dumps(results, indent=4))
