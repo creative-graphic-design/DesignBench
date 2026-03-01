@@ -1,34 +1,44 @@
+import json
 import os
 
+from loguru import logger
 from PIL import Image
-from tqdm import tqdm
 from tqdm.auto import tqdm
 
-from .config import Framework, Task, folder_dic, format_dic
-from .metric import clip_similarity, mae_score, ssim_similarity
+from .config import DesignBench_Path, Framework, Task, folder_dic, format_dic
+from .metric import (
+    clip_similarity,
+    code_similarity,
+    llm_edit_judge,
+    llm_repair_judge,
+    mae_score,
+    ssim_similarity,
+)
 from .metric_ast import ast_code_similarity
-from .metric_utils import render_ui
+from .metric_utils import remove_comments, render_ui, validate_issue
+
+re_calculate = False  # FIXME
 
 
 def get_begin_end(framework: Framework, task: Task) -> range:
     # (framework, task): (begin, end)
     task_ranges = {
-        (Framework.VANILLA, Task.GENERATION): (1, 120),
-        (Framework.REACT, Task.GENERATION): (1, 109),
-        (Framework.VUE, Task.GENERATION): (1, 118),
-        (Framework.ANGULAR, Task.GENERATION): (1, 83),
-        (Framework.VANILLA, Task.EDIT): (1, 80),
-        (Framework.REACT, Task.EDIT): (1, 108),
-        (Framework.VUE, Task.EDIT): (1, 105),
-        (Framework.ANGULAR, Task.EDIT): (1, 66),
-        (Framework.VANILLA, Task.REPAIR): (1, 28),
-        (Framework.REACT, Task.REPAIR): (1, 28),
-        (Framework.VUE, Task.REPAIR): (1, 27),
-        (Framework.ANGULAR, Task.REPAIR): (1, 28),
-        (Framework.VANILLA, Task.COMPILE): (1, 10),
-        (Framework.REACT, Task.COMPILE): (1, 10),
-        (Framework.VUE, Task.COMPILE): (1, 10),
-        (Framework.ANGULAR, Task.COMPILE): (1, 10),
+        (Framework.vanilla, Task.generation): (1, 120),
+        (Framework.react, Task.generation): (1, 109),
+        (Framework.vue, Task.generation): (1, 118),
+        (Framework.angular, Task.generation): (1, 83),
+        (Framework.vanilla, Task.edit): (1, 80),
+        (Framework.react, Task.edit): (1, 108),
+        (Framework.vue, Task.edit): (1, 105),
+        (Framework.angular, Task.edit): (1, 66),
+        (Framework.vanilla, Task.repair): (1, 28),
+        (Framework.react, Task.repair): (1, 28),
+        (Framework.vue, Task.repair): (1, 27),
+        (Framework.angular, Task.repair): (1, 28),
+        (Framework.vanilla, Task.compile): (1, 10),
+        (Framework.react, Task.compile): (1, 10),
+        (Framework.vue, Task.compile): (1, 10),
+        (Framework.angular, Task.compile): (1, 10),
     }
 
     try:
@@ -40,7 +50,7 @@ def get_begin_end(framework: Framework, task: Task) -> range:
 
 
 def get_generation_metric(web_name, model_name, frame_work, implement_framework):
-    prediction_path = folder_dic[Task.GENERATION]
+    prediction_path = folder_dic[Task.generation]
     reference_img_path = (
         prediction_path + f"{frame_work}/" + f"{web_name}/{web_name}.png"
     )
@@ -89,7 +99,7 @@ def get_generation_metric(web_name, model_name, frame_work, implement_framework)
 
 
 def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
-    prediction_path = folder_dic[Task.REPAIR]
+    prediction_path = folder_dic[Task.repair]
     generated_code_path = (
         prediction_path
         + f"RepairResults/{framework}-{framework}/{model_name}/{framework}_{web_name}_{model_name}_{framework}_{mode}.{format_dic[framework]}"
@@ -189,7 +199,7 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     )
                 )
 
-                print("angular score:", angular_code_score)
+                logger.info(f"angular score: {angular_code_score}")
                 src_ts_code = src_code["ts"]
                 # reference_ts_code = reference_code["ts"]
 
@@ -217,7 +227,7 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     generated_code=generated_code,
                 )
 
-                print("ts score:", ts_code_score)
+                logger.info(f"ts score: {ts_code_score}")
                 code_score = 0.5 * angular_code_score + 0.5 * ts_code_score
                 ast_code_op_score = (
                     0.5 * ts_ast_code_op_score + 0.5 * angular_ast_code_op_score
@@ -276,7 +286,7 @@ def get_repair_metric(web_name, model_name, framework, mode, llm_judge_flag):
 
 
 def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
-    prediction_path = folder_dic[Task.EDIT]
+    prediction_path = folder_dic[Task.edit]
     generated_code_path = (
         prediction_path
         + f"EditResults/{framework}-{framework}/{model_name}/{framework}_{web_name}_{model_name}_{framework}_{mode}.{format_dic[framework]}"
@@ -364,7 +374,7 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     )
                 )
 
-                print("angular score:", angular_code_score)
+                logger.info(f"angular score: {angular_code_score}")
 
                 src_ts_code = src_code["ts"]
                 reference_ts_code = reference_code["ts"]
@@ -388,7 +398,7 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
                     framework=framework,
                 )
 
-                print("ts score:", ts_code_score)
+                logger.info(f"ts score: {ts_code_score}")
                 code_score = 0.5 * angular_code_score + 0.5 * ts_code_score
                 ast_code_op_score = (
                     0.5 * ts_ast_code_op_score + 0.5 * angular_ast_code_op_score
@@ -432,10 +442,12 @@ def get_edit_metric(web_name, model_name, framework, mode, llm_judge_flag):
 
 def evaluate_repair(models, frame_works, modes, llm_judge_flag):
     for frame_work in frame_works:
-        iterate_range = get_begin_end(framework=frame_work, task=Task.REPAIR)
+        iterate_range = get_begin_end(framework=frame_work, task=Task.repair)
         for model_name in models:
             for mode in modes:
-                res_path = f"./res/DesignRepair/{frame_work}_{mode}.json"
+                res_path = (
+                    DesignBench_Path + f"res/DesignRepair/{frame_work}_{mode}.json"
+                )
                 if os.path.exists(res_path):
                     with open(res_path, "r") as fs:
                         results = json.loads(fs.read())
@@ -475,7 +487,7 @@ def evaluate_repair(models, frame_works, modes, llm_judge_flag):
                                 "llm score"
                             ]
                         except Exception as e:
-                            print(f"error for {web_name}", e)
+                            logger.warning(f"error for {web_name} {e}")
 
                 with open(res_path, "w") as fs:
                     fs.write(json.dumps(results, indent=4))
@@ -483,10 +495,10 @@ def evaluate_repair(models, frame_works, modes, llm_judge_flag):
 
 def evaluate_edit(models, frame_works, modes, llm_judge_flag):
     for frame_work in frame_works:
-        iterate_range = get_begin_end(framework=frame_work, task=Task.EDIT)
+        iterate_range = get_begin_end(framework=frame_work, task=Task.edit)
         for model_name in models:
             for mode in modes:
-                res_path = f"./res/DesignEdit/{frame_work}_{mode}.json"
+                res_path = DesignBench_Path + f"res/DesignEdit/{frame_work}_{mode}.json"
                 if os.path.exists(res_path):
                     with open(res_path, "r") as fs:
                         results = json.loads(fs.read())
@@ -509,7 +521,7 @@ def evaluate_edit(models, frame_works, modes, llm_judge_flag):
                             llm_judge_flag=False,
                         )
                         results[model_name][str(web_name)] = metric
-                        print(metric)
+                        logger.info(metric)
                     else:
                         try:
                             if "llm score" in results[model_name][str(web_name)]:
@@ -526,7 +538,7 @@ def evaluate_edit(models, frame_works, modes, llm_judge_flag):
                                 "llm score"
                             ]
                         except Exception as e:
-                            print(f"error for {web_name}", e)
+                            logger.warning(f"error for {web_name} {e}")
 
                 with open(res_path, "w") as fs:
                     fs.write(json.dumps(results, indent=4))
@@ -534,10 +546,13 @@ def evaluate_edit(models, frame_works, modes, llm_judge_flag):
 
 def evaluate_generation(models, frame_works, implemented_frameworks):
     for frame_work in frame_works:
-        iterate_range = get_begin_end(framework=frame_work, task=Task.GENERATION)
+        iterate_range = get_begin_end(framework=frame_work, task=Task.generation)
 
         for implement_framework in implemented_frameworks:
-            res_path = f"./res/DesignGeneration/{frame_work}_{implement_framework}.json"
+            res_path = (
+                DesignBench_Path
+                + f"res/DesignGeneration/{frame_work}_{implement_framework}.json"
+            )
             if os.path.exists(res_path):
                 with open(res_path, "r") as fs:
                     results = json.loads(fs.read())
@@ -564,15 +579,17 @@ def evaluate_generation(models, frame_works, implemented_frameworks):
                     )
                     results[model_name][web_name] = metrics
 
+            from .config import DesignBench_Path
+
             with open(
-                f"res/DesignGeneration/{frame_work}_{implement_framework}.json", "w"
+                DesignBench_Path
+                + f"res/DesignGeneration/{frame_work}_{implement_framework}.json",
+                "w",
             ) as fs:
                 fs.write(json.dumps(results, indent=4))
 
 
 if __name__ == "__main__":
-    re_calculate = False
-
     models = [
         "claude-3-7-sonnet-20250219",
         "gpt-4o-2024-11-20",

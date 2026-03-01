@@ -1,14 +1,22 @@
-import subprocess
-import re
-from selenium.webdriver.firefox.service import Service
 import base64
-from selenium import webdriver
-import time
-import os
-from selenium.webdriver.firefox.options import Options
 import json
+import os
+import re
+import subprocess
+import time
+
+from loguru import logger
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
-from config import *
+from webdriver_manager.firefox import GeckoDriverManager
+
+from .config import (
+    DesignBench_Path,
+    deploy_link_dic,
+    project_code_path_dic,
+)
 
 
 class WebDriver:
@@ -26,7 +34,7 @@ class WebDriver:
 
     def create_driver(self):
         # service = Service()
-        service = Service(executable_path=firefox_path)
+        service = Service(GeckoDriverManager().install())
         options = Options()
         if self.headless:
             options.add_argument("-headless")
@@ -177,7 +185,7 @@ def render_ui(code_path, save_path, frame_work):
     # ToDo: input the generated code file path (e.g., /DesignEdit/1/result/1-gemini.html),
     #  save the screenshot of the image (e.g., /DesignEdit/1/result/1-gemini.png)
 
-    print(code_path)
+    logger.info(code_path)
     if frame_work == "vanilla":
         print("render vanilla")
         try:
@@ -287,7 +295,7 @@ def run_angular_app(
 
                     if "ERROR" in line:
                         compilation_success = False
-                        print("ERROR")
+                        logger.warning("ERROR")
 
                     if "Watch mode enabled" in line:
                         if not compilation_success:

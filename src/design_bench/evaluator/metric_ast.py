@@ -3,24 +3,26 @@ AST Edit Similarity Calculator for Frontend Code
 Supports: React (.jsx), Angular (.angular), HTML (.html), Vue (.vue)
 """
 
-import subprocess
-import json
-import tempfile
-import os
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
-from dataclasses import dataclass
 import difflib
-from collections import Counter
+import json
 import math
+import os
+import subprocess
+import tempfile
+from collections import Counter
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from loguru import logger
 
 
 @dataclass
 class ASTNode:
     """Simplified AST node representation"""
+
     type: str
     value: Any
-    children: List['ASTNode']
+    children: List["ASTNode"]
     attributes: Dict[str, Any]
 
     def __hash__(self):
@@ -31,7 +33,9 @@ class CodeBLEUCalculator:
     """Calculate BLEU and CodeBLEU scores for code similarity"""
 
     @staticmethod
-    def compute_bleu(reference: str, hypothesis: str, max_n: int = 4) -> Dict[str, float]:
+    def compute_bleu(
+        reference: str, hypothesis: str, max_n: int = 4
+    ) -> Dict[str, float]:
         """
         Compute BLEU score (n-gram based)
 
@@ -83,21 +87,21 @@ class CodeBLEUCalculator:
         bleu = bp * geo_mean
 
         return {
-            'bleu': round(bleu, 4),
-            'bleu-1': round(precisions[0], 4),
-            'bleu-2': round(precisions[1] if len(precisions) > 1 else 0.0, 4),
-            'bleu-3': round(precisions[2] if len(precisions) > 2 else 0.0, 4),
-            'bleu-4': round(precisions[3] if len(precisions) > 3 else 0.0, 4),
-            'bp': round(bp, 4)
+            "bleu": round(bleu, 4),
+            "bleu-1": round(precisions[0], 4),
+            "bleu-2": round(precisions[1] if len(precisions) > 1 else 0.0, 4),
+            "bleu-3": round(precisions[2] if len(precisions) > 2 else 0.0, 4),
+            "bleu-4": round(precisions[3] if len(precisions) > 3 else 0.0, 4),
+            "bp": round(bp, 4),
         }
 
     @staticmethod
     def compute_codebleu(
-            reference: str,
-            hypothesis: str,
-            reference_ast: Dict = None,
-            hypothesis_ast: Dict = None,
-            weights: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
+        reference: str,
+        hypothesis: str,
+        reference_ast: Dict = None,
+        hypothesis_ast: Dict = None,
+        weights: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     ) -> Dict[str, float]:
         """
         Compute CodeBLEU score
@@ -114,14 +118,16 @@ class CodeBLEUCalculator:
         """
         # 1. N-gram match (BLEU)
         bleu_scores = CodeBLEUCalculator.compute_bleu(reference, hypothesis)
-        ngram_match = bleu_scores['bleu']
+        ngram_match = bleu_scores["bleu"]
 
         # 2. Weighted n-gram match (considering keywords)
         weighted_ngram = CodeBLEUCalculator._weighted_ngram_match(reference, hypothesis)
 
         # 3. Syntax match (AST-based)
         if reference_ast and hypothesis_ast:
-            syntax_match = CodeBLEUCalculator._syntax_match(reference_ast, hypothesis_ast)
+            syntax_match = CodeBLEUCalculator._syntax_match(
+                reference_ast, hypothesis_ast
+            )
         else:
             syntax_match = 0.0
 
@@ -130,26 +136,27 @@ class CodeBLEUCalculator:
 
         # Combined CodeBLEU score
         codebleu = (
-                weights[0] * ngram_match +
-                weights[1] * weighted_ngram +
-                weights[2] * syntax_match +
-                weights[3] * dataflow_match
+            weights[0] * ngram_match
+            + weights[1] * weighted_ngram
+            + weights[2] * syntax_match
+            + weights[3] * dataflow_match
         )
 
         return {
-            'codebleu': round(codebleu, 4),
-            'ngram_match': round(ngram_match, 4),
-            'weighted_ngram_match': round(weighted_ngram, 4),
-            'syntax_match': round(syntax_match, 4),
-            'dataflow_match': round(dataflow_match, 4)
+            "codebleu": round(codebleu, 4),
+            "ngram_match": round(ngram_match, 4),
+            "weighted_ngram_match": round(weighted_ngram, 4),
+            "syntax_match": round(syntax_match, 4),
+            "dataflow_match": round(dataflow_match, 4),
         }
 
     @staticmethod
     def _tokenize_code(code: str) -> List[str]:
         """Tokenize code into tokens"""
         import re
+
         # Simple tokenization: split by whitespace and punctuation
-        tokens = re.findall(r'\w+|[^\w\s]', code)
+        tokens = re.findall(r"\w+|[^\w\s]", code)
         return [t for t in tokens if t.strip()]
 
     @staticmethod
@@ -157,7 +164,7 @@ class CodeBLEUCalculator:
         """Get n-grams from token list"""
         ngrams = Counter()
         for i in range(len(tokens) - n + 1):
-            ngram = tuple(tokens[i:i + n])
+            ngram = tuple(tokens[i : i + n])
             ngrams[ngram] += 1
         return ngrams
 
@@ -167,9 +174,24 @@ class CodeBLEUCalculator:
         Weighted n-gram match giving higher weight to keywords
         """
         keywords = {
-            'function', 'const', 'let', 'var', 'return', 'if', 'else',
-            'className', 'onClick', 'useState', 'useEffect', 'import', 'export',
-            'class', 'extends', 'render', 'props', 'state'
+            "function",
+            "const",
+            "let",
+            "var",
+            "return",
+            "if",
+            "else",
+            "className",
+            "onClick",
+            "useState",
+            "useEffect",
+            "import",
+            "export",
+            "class",
+            "extends",
+            "render",
+            "props",
+            "state",
         }
 
         ref_tokens = CodeBLEUCalculator._tokenize_code(reference)
@@ -207,8 +229,8 @@ class CodeBLEUCalculator:
             if types is None:
                 types = []
             if isinstance(ast, dict):
-                if 'type' in ast:
-                    types.append(ast['type'])
+                if "type" in ast:
+                    types.append(ast["type"])
                 for value in ast.values():
                     get_node_types(value, types)
             elif isinstance(ast, list):
@@ -241,11 +263,11 @@ class CodeBLEUCalculator:
         # Extract variable declarations and usages
         def extract_dataflow(code):
             # Find variable declarations
-            declarations = set(re.findall(r'(?:const|let|var)\s+(\w+)', code))
+            declarations = set(re.findall(r"(?:const|let|var)\s+(\w+)", code))
             # Find function calls
-            function_calls = set(re.findall(r'(\w+)\s*\(', code))
+            function_calls = set(re.findall(r"(\w+)\s*\(", code))
             # Find property accesses
-            properties = set(re.findall(r'\.(\w+)', code))
+            properties = set(re.findall(r"\.(\w+)", code))
 
             return declarations, function_calls, properties
 
@@ -332,14 +354,14 @@ console.log(JSON.stringify(ast, replacer, 2));
             AST dictionary
         """
         # Create temporary files
-        tmpdir = tempfile.mkdtemp(dir='./tmp')
-        code_file = os.path.join(tmpdir, f'code.{file_type}')
-        parser_file = os.path.join(tmpdir, 'parser.js')
+        tmpdir = tempfile.mkdtemp(dir="./tmp")
+        code_file = os.path.join(tmpdir, f"code.{file_type}")
+        parser_file = os.path.join(tmpdir, "parser.js")
 
         # Write files
-        with open(code_file, 'w', encoding='utf-8') as f:
+        with open(code_file, "w", encoding="utf-8") as f:
             f.write(code)
-        with open(parser_file, 'w', encoding='utf-8') as f:
+        with open(parser_file, "w", encoding="utf-8") as f:
             f.write(self.parser_script)
 
         # Install dependencies (if needed)
@@ -348,10 +370,10 @@ console.log(JSON.stringify(ast, replacer, 2));
         # Run parser
         try:
             result = subprocess.run(
-                ['/Users/whalexiao/.nvm/versions/node/v18.19.0/bin/node', parser_file, code_file, file_type],
+                ["node", parser_file, code_file, file_type],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode != 0:
@@ -369,12 +391,12 @@ console.log(JSON.stringify(ast, replacer, 2));
             "dependencies": {
                 "@babel/parser": "^7.23.0",
                 "@vue/compiler-dom": "^3.3.0",
-                "parse5": "^7.1.2"
+                "parse5": "^7.1.2",
             }
         }
 
-        package_file = os.path.join(tmpdir, 'package.json')
-        with open(package_file, 'w') as f:
+        package_file = os.path.join(tmpdir, "package.json")
+        with open(package_file, "w") as f:
             json.dump(package_json, f)
 
         # Check if already installed globally or locally
@@ -396,7 +418,8 @@ class TreeEditDistance:
         # Simplified implementation - in production use zss library
         # pip install zss
         try:
-            from zss import simple_distance, Node as ZSSNode
+            from zss import Node as ZSSNode
+            from zss import simple_distance
 
             def ast_to_zss(node: ASTNode) -> ZSSNode:
                 label = f"{node.type}:{node.value}"
@@ -411,8 +434,10 @@ class TreeEditDistance:
             return simple_distance(zss_tree1, zss_tree2)
         except ImportError:
             # Fallback: simple node count difference
-            return abs(TreeEditDistance._count_nodes(tree1) -
-                       TreeEditDistance._count_nodes(tree2))
+            return abs(
+                TreeEditDistance._count_nodes(tree1)
+                - TreeEditDistance._count_nodes(tree2)
+            )
 
     @staticmethod
     def _count_nodes(node: ASTNode) -> int:
@@ -454,38 +479,48 @@ class ASTDiffer:
             return
 
         if node1 is None:
-            ops.append({'type': 'insert', 'path': path.copy(), 'node': str(node2)[:100]})
+            ops.append(
+                {"type": "insert", "path": path.copy(), "node": str(node2)[:100]}
+            )
             return
 
         if node2 is None:
-            ops.append({'type': 'delete', 'path': path.copy(), 'node': str(node1)[:100]})
+            ops.append(
+                {"type": "delete", "path": path.copy(), "node": str(node1)[:100]}
+            )
             return
 
         # Handle dict nodes
         if isinstance(node1, dict) and isinstance(node2, dict):
-            if node1.get('type') != node2.get('type'):
-                ops.append({'type': 'update', 'path': path.copy(),
-                            'from': node1.get('type'), 'to': node2.get('type')})
+            if node1.get("type") != node2.get("type"):
+                ops.append(
+                    {
+                        "type": "update",
+                        "path": path.copy(),
+                        "from": node1.get("type"),
+                        "to": node2.get("type"),
+                    }
+                )
 
             # Check attributes
             keys = set(node1.keys()) | set(node2.keys())
             for key in keys:
-                if key in ['loc', 'start', 'end', 'range', 'tokens', 'comments']:
+                if key in ["loc", "start", "end", "range", "tokens", "comments"]:
                     continue  # Skip position info and metadata
 
-                ASTDiffer._diff_nodes(
-                    node1.get(key),
-                    node2.get(key),
-                    ops,
-                    path + [key]
-                )
+                ASTDiffer._diff_nodes(node1.get(key), node2.get(key), ops, path + [key])
 
         # Handle list nodes
         elif isinstance(node1, list) and isinstance(node2, list):
             # Check if all elements are hashable (simple types)
             try:
-                all_hashable = (len(node1) == 0 or all(ASTDiffer._is_hashable(item) for item in node1)) and \
-                               (len(node2) == 0 or all(ASTDiffer._is_hashable(item) for item in node2))
+                all_hashable = (
+                    len(node1) == 0
+                    or all(ASTDiffer._is_hashable(item) for item in node1)
+                ) and (
+                    len(node2) == 0
+                    or all(ASTDiffer._is_hashable(item) for item in node2)
+                )
             except:
                 all_hashable = False
 
@@ -494,17 +529,29 @@ class ASTDiffer:
                 try:
                     matcher = difflib.SequenceMatcher(None, node1, node2)
                     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-                        if tag == 'delete':
+                        if tag == "delete":
                             for i in range(i1, i2):
-                                ops.append({'type': 'delete', 'path': path + [i],
-                                            'node': str(node1[i])[:100]})
-                        elif tag == 'insert':
+                                ops.append(
+                                    {
+                                        "type": "delete",
+                                        "path": path + [i],
+                                        "node": str(node1[i])[:100],
+                                    }
+                                )
+                        elif tag == "insert":
                             for j in range(j1, j2):
-                                ops.append({'type': 'insert', 'path': path + [j],
-                                            'node': str(node2[j])[:100]})
-                        elif tag == 'replace':
+                                ops.append(
+                                    {
+                                        "type": "insert",
+                                        "path": path + [j],
+                                        "node": str(node2[j])[:100],
+                                    }
+                                )
+                        elif tag == "replace":
                             for i, j in zip(range(i1, i2), range(j1, j2)):
-                                ASTDiffer._diff_nodes(node1[i], node2[j], ops, path + [i])
+                                ASTDiffer._diff_nodes(
+                                    node1[i], node2[j], ops, path + [i]
+                                )
                 except TypeError:
                     # Fallback if SequenceMatcher still fails
                     all_hashable = False
@@ -515,20 +562,36 @@ class ASTDiffer:
                 for i in range(max_len):
                     if i >= len(node1):
                         # Insert operation
-                        ops.append({'type': 'insert', 'path': path + [i],
-                                    'node': str(node2[i])[:100]})
+                        ops.append(
+                            {
+                                "type": "insert",
+                                "path": path + [i],
+                                "node": str(node2[i])[:100],
+                            }
+                        )
                     elif i >= len(node2):
                         # Delete operation
-                        ops.append({'type': 'delete', 'path': path + [i],
-                                    'node': str(node1[i])[:100]})
+                        ops.append(
+                            {
+                                "type": "delete",
+                                "path": path + [i],
+                                "node": str(node1[i])[:100],
+                            }
+                        )
                     else:
                         # Recursively compare elements at same index
                         ASTDiffer._diff_nodes(node1[i], node2[i], ops, path + [i])
 
         # Handle primitive type differences
         elif node1 != node2:
-            ops.append({'type': 'update', 'path': path.copy(),
-                        'from': str(node1)[:50], 'to': str(node2)[:50]})
+            ops.append(
+                {
+                    "type": "update",
+                    "path": path.copy(),
+                    "from": str(node1)[:50],
+                    "to": str(node2)[:50],
+                }
+            )
 
 
 class ASTEditSimilarity:
@@ -544,11 +607,7 @@ class ASTEditSimilarity:
             self.parser = ASTParser()
 
     def calculate(
-            self,
-            before_code: str,
-            gt_code: str,
-            pred_code: str,
-            file_type: str
+        self, before_code: str, gt_code: str, pred_code: str, file_type: str
     ) -> Dict[str, float]:
         """
         Calculate AST Edit Similarity
@@ -573,103 +632,125 @@ class ASTEditSimilarity:
                 return self._lightweight_similarity(before_code, gt_code, pred_code)
             else:
                 # Full AST parsing
-                return self._full_ast_similarity(before_code, gt_code, pred_code, file_type)
+                return self._full_ast_similarity(
+                    before_code, gt_code, pred_code, file_type
+                )
         except Exception as e:
-            print(f"Error calculating AST similarity: {e}")
+            logger.warning(f"Error calculating AST similarity: {e}")
             import traceback
+
             traceback.print_exc()
             # Fallback to simple line diff
             # return self._lightweight_similarity(before_code, gt_code, pred_code)
 
             return {
-                'ast_ted': 0,
-                'ast_op': 0,
-                'matched_ops': 0,
-                'total_gt_ops': 0,
-                'total_pred_ops': 0,
-                'bleu': 0,
-                'bleu-4':0,
-                'codebleu': 0,
-                'ngram_match': 0,
-                'syntax_match': 0,
-                'dataflow_match': 0,
-                'ast_mcs': 0,
-                'ast_es':0
+                "ast_ted": 0,
+                "ast_op": 0,
+                "matched_ops": 0,
+                "total_gt_ops": 0,
+                "total_pred_ops": 0,
+                "bleu": 0,
+                "bleu-4": 0,
+                "codebleu": 0,
+                "ngram_match": 0,
+                "syntax_match": 0,
+                "dataflow_match": 0,
+                "ast_mcs": 0,
+                "ast_es": 0,
             }
 
     def _full_ast_similarity(
-            self,
-            before_code: str,
-            gt_code: str,
-            pred_code: str,
-            file_type: str
+        self, before_code: str, gt_code: str, pred_code: str, file_type: str
     ) -> Dict[str, float]:
         """Full AST-based similarity (requires Node.js)"""
         # Parse all versions
-        print("Parsing before_code...")
+        logger.info("Parsing before_code...")
         before_ast = self.parser.parse(before_code, file_type)
-        print("Parsing gt_code...")
+        logger.info("Parsing gt_code...")
         gt_ast = self.parser.parse(gt_code, file_type)
-        print("Parsing pred_code...")
+        logger.info("Parsing pred_code...")
         pred_ast = self.parser.parse(pred_code, file_type)
 
         # Extract operations
-        print("Extracting GT operations...")
+        logger.info("Extracting GT operations...")
         gt_ops = ASTDiffer.extract_operations(before_ast, gt_ast)
-        print(f"Found {len(gt_ops)} GT operations")
+        logger.info(f"Found {len(gt_ops)} GT operations")
 
-        print("Extracting pred operations...")
+        logger.info("Extracting pred operations...")
         pred_ops = ASTDiffer.extract_operations(before_ast, pred_ast)
-        print(f"Found {len(pred_ops)} pred operations")
+        logger.info(f"Found {len(pred_ops)} pred operations")
 
         # Match operations (find common edit locations)
-        print("Matching operations...")
+        logger.info("Matching operations...")
         matched_pairs = self._match_operations(gt_ops, pred_ops)
-        print(f"Matched {len(matched_pairs)} operation pairs")
+        logger.info(f"Matched {len(matched_pairs)} operation pairs")
 
         # Calculate operation similarity (where the edits are)
-        ast_op = len(matched_pairs) / max(len(gt_ops), len(pred_ops)) if (gt_ops or pred_ops) else 1.0
+        ast_op = (
+            len(matched_pairs) / max(len(gt_ops), len(pred_ops))
+            if (gt_ops or pred_ops)
+            else 1.0
+        )
 
         # Extract code content from MATCHED operations only
-        gt_matched_content = ' '.join([self._extract_op_content(op1) for op1, _ in matched_pairs])
-        pred_matched_content = ' '.join([self._extract_op_content(op2) for _, op2 in matched_pairs])
+        gt_matched_content = " ".join(
+            [self._extract_op_content(op1) for op1, _ in matched_pairs]
+        )
+        pred_matched_content = " ".join(
+            [self._extract_op_content(op2) for _, op2 in matched_pairs]
+        )
 
-        print(f"GT matched content length: {len(gt_matched_content)}")
-        print(f"Pred matched content length: {len(pred_matched_content)}")
+        logger.info(f"GT matched content length: {len(gt_matched_content)}")
+        logger.info(f"Pred matched content length: {len(pred_matched_content)}")
 
         # Calculate BLEU score on matched content only
         if gt_matched_content and pred_matched_content:
-            print("Calculating BLEU on matched operations...")
-            bleu_results = CodeBLEUCalculator.compute_bleu(gt_matched_content, pred_matched_content)
+            logger.info("Calculating BLEU on matched operations...")
+            bleu_results = CodeBLEUCalculator.compute_bleu(
+                gt_matched_content, pred_matched_content
+            )
 
-            print("Calculating CodeBLEU on matched operations...")
+            logger.info("Calculating CodeBLEU on matched operations...")
             codebleu_results = CodeBLEUCalculator.compute_codebleu(
-                gt_matched_content, pred_matched_content,
-                gt_ast, pred_ast
+                gt_matched_content, pred_matched_content, gt_ast, pred_ast
             )
         else:
-            print("No matched content found, using fallback scores")
+            logger.info("No matched content found, using fallback scores")
             if len(pred_ops) == 0 and len(gt_ops) == 0:
-                bleu_results = {'bleu': 1.0, 'bleu-1': 1.0, 'bleu-2': 1.0, 'bleu-3': 1.0, 'bleu-4': 1.0, 'bp': 1.0}
+                bleu_results = {
+                    "bleu": 1.0,
+                    "bleu-1": 1.0,
+                    "bleu-2": 1.0,
+                    "bleu-3": 1.0,
+                    "bleu-4": 1.0,
+                    "bp": 1.0,
+                }
                 codebleu_results = {
-                    'codebleu': 1.0,
-                    'ngram_match': 1.0,
-                    'weighted_ngram_match': 1.0,
-                    'syntax_match': 1.0,
-                    'dataflow_match': 1.0
+                    "codebleu": 1.0,
+                    "ngram_match": 1.0,
+                    "weighted_ngram_match": 1.0,
+                    "syntax_match": 1.0,
+                    "dataflow_match": 1.0,
                 }
             else:
-                bleu_results = {'bleu': 0.0, 'bleu-1': 0.0, 'bleu-2': 0.0, 'bleu-3': 0.0, 'bleu-4': 0.0, 'bp': 0.0}
+                bleu_results = {
+                    "bleu": 0.0,
+                    "bleu-1": 0.0,
+                    "bleu-2": 0.0,
+                    "bleu-3": 0.0,
+                    "bleu-4": 0.0,
+                    "bp": 0.0,
+                }
                 codebleu_results = {
-                    'codebleu': 0.0,
-                    'ngram_match': 0.0,
-                    'weighted_ngram_match': 0.0,
-                    'syntax_match': 0.0,
-                    'dataflow_match': 0.0
+                    "codebleu": 0.0,
+                    "ngram_match": 0.0,
+                    "weighted_ngram_match": 0.0,
+                    "syntax_match": 0.0,
+                    "dataflow_match": 0.0,
                 }
 
         # Use CodeBLEU on matched content as modified content similarity
-        ast_mcs = codebleu_results['codebleu']
+        ast_mcs = codebleu_results["codebleu"]
 
         # Calculate tree edit distance similarity
         ast_ted = self._ted_similarity(gt_ast, pred_ast)
@@ -678,50 +759,47 @@ class ASTEditSimilarity:
         ast_es = 0.35 * ast_ted + 0.30 * ast_op + 0.35 * ast_mcs
 
         return {
-            'ast_ted': round(ast_ted, 4),
-            'ast_op': round(ast_op, 4),
-            'ast_mcs': round(ast_mcs, 4),
-            'matched_ops': len(matched_pairs),
-            'total_gt_ops': len(gt_ops),
-            'total_pred_ops': len(pred_ops),
-            'bleu': bleu_results['bleu'],
-            'bleu-4': bleu_results['bleu-4'],
-            'codebleu': codebleu_results['codebleu'],
-            'ngram_match': codebleu_results['ngram_match'],
-            'syntax_match': codebleu_results['syntax_match'],
-            'dataflow_match': codebleu_results['dataflow_match'],
-            'ast_es': round(ast_es, 4)
+            "ast_ted": round(ast_ted, 4),
+            "ast_op": round(ast_op, 4),
+            "ast_mcs": round(ast_mcs, 4),
+            "matched_ops": len(matched_pairs),
+            "total_gt_ops": len(gt_ops),
+            "total_pred_ops": len(pred_ops),
+            "bleu": bleu_results["bleu"],
+            "bleu-4": bleu_results["bleu-4"],
+            "codebleu": codebleu_results["codebleu"],
+            "ngram_match": codebleu_results["ngram_match"],
+            "syntax_match": codebleu_results["syntax_match"],
+            "dataflow_match": codebleu_results["dataflow_match"],
+            "ast_es": round(ast_es, 4),
         }
 
     def _extract_modified_code(self, before: str, after: str) -> str:
         """
         Extract only the modified parts of code for BLEU calculation
         """
-        before_lines = before.strip().split('\n')
-        after_lines = after.strip().split('\n')
+        before_lines = before.strip().split("\n")
+        after_lines = after.strip().split("\n")
 
         differ = difflib.Differ()
         diff = list(differ.compare(before_lines, after_lines))
 
         modified_parts = []
         for line in diff:
-            if line.startswith('+ '):
+            if line.startswith("+ "):
                 # Added line
                 modified_parts.append(line[2:])
-            elif line.startswith('- '):
+            elif line.startswith("- "):
                 # Removed line (include for context)
                 modified_parts.append(line[2:])
-            elif line.startswith('? '):
+            elif line.startswith("? "):
                 # Line showing differences (skip)
                 continue
 
-        return '\n'.join(modified_parts) if modified_parts else after
+        return "\n".join(modified_parts) if modified_parts else after
 
     def _lightweight_similarity(
-            self,
-            before_code: str,
-            gt_code: str,
-            pred_code: str
+        self, before_code: str, gt_code: str, pred_code: str
     ) -> Dict[str, float]:
         """
         Lightweight similarity based on token/line diffing
@@ -736,9 +814,7 @@ class ASTEditSimilarity:
 
         # Calculate CodeBLEU (without AST since we're in lightweight mode)
         codebleu_results = CodeBLEUCalculator.compute_codebleu(
-            gt_modified, pred_modified,
-            reference_ast=None,
-            hypothesis_ast=None
+            gt_modified, pred_modified, reference_ast=None, hypothesis_ast=None
         )
 
         # Tokenize code
@@ -746,21 +822,25 @@ class ASTEditSimilarity:
         pred_tokens = self._tokenize(before_code, pred_code)
 
         # Calculate token-level edit operations
-        gt_ops_set = set(gt_tokens['added'] + gt_tokens['removed'] + gt_tokens['modified'])
-        pred_ops_set = set(pred_tokens['added'] + pred_tokens['removed'] + pred_tokens['modified'])
+        gt_ops_set = set(
+            gt_tokens["added"] + gt_tokens["removed"] + gt_tokens["modified"]
+        )
+        pred_ops_set = set(
+            pred_tokens["added"] + pred_tokens["removed"] + pred_tokens["modified"]
+        )
 
         if not gt_ops_set and not pred_ops_set:
             return {
-                'ast_ted': 1.0,
-                'ast_op': 1.0,
-                'ast_mcs': 1.0,
-                'bleu': 1.0,
-                'bleu-4': 1.0,
-                'codebleu': 1.0,
-                'ngram_match': 1.0,
-                'syntax_match': 1.0,
-                'dataflow_match': 1.0,
-                'ast_es': 1.0
+                "ast_ted": 1.0,
+                "ast_op": 1.0,
+                "ast_mcs": 1.0,
+                "bleu": 1.0,
+                "bleu-4": 1.0,
+                "codebleu": 1.0,
+                "ngram_match": 1.0,
+                "syntax_match": 1.0,
+                "dataflow_match": 1.0,
+                "ast_es": 1.0,
             }
 
         # Operation similarity (Jaccard) - where the changes are
@@ -769,11 +849,11 @@ class ASTEditSimilarity:
         ast_op = intersection / union if union > 0 else 0.0
 
         # Use CodeBLEU as modified content similarity
-        ast_mcs = codebleu_results['codebleu']
+        ast_mcs = codebleu_results["codebleu"]
 
         # Structure similarity (sequence matching)
-        gt_lines = gt_code.strip().split('\n')
-        pred_lines = pred_code.strip().split('\n')
+        gt_lines = gt_code.strip().split("\n")
+        pred_lines = pred_code.strip().split("\n")
         matcher = difflib.SequenceMatcher(None, gt_lines, pred_lines)
         ast_ted = matcher.ratio()
 
@@ -781,26 +861,32 @@ class ASTEditSimilarity:
         ast_es = 0.35 * ast_ted + 0.30 * ast_op + 0.35 * ast_mcs
 
         return {
-            'ast_ted': round(ast_ted, 4),
-            'ast_op': round(ast_op, 4),
-            'ast_mcs': round(ast_mcs, 4),
-            'bleu': bleu_results['bleu'],
-            'bleu-4': bleu_results['bleu-4'],
-            'codebleu': codebleu_results['codebleu'],
-            'ngram_match': codebleu_results['ngram_match'],
-            'syntax_match': codebleu_results['syntax_match'],
-            'dataflow_match': codebleu_results['dataflow_match'],
-            'ast_es': round(ast_es, 4)
+            "ast_ted": round(ast_ted, 4),
+            "ast_op": round(ast_op, 4),
+            "ast_mcs": round(ast_mcs, 4),
+            "bleu": bleu_results["bleu"],
+            "bleu-4": bleu_results["bleu-4"],
+            "codebleu": codebleu_results["codebleu"],
+            "ngram_match": codebleu_results["ngram_match"],
+            "syntax_match": codebleu_results["syntax_match"],
+            "dataflow_match": codebleu_results["dataflow_match"],
+            "ast_es": round(ast_es, 4),
         }
 
-    def _lightweight_content_similarity(self, gt_tokens: Dict, pred_tokens: Dict) -> float:
+    def _lightweight_content_similarity(
+        self, gt_tokens: Dict, pred_tokens: Dict
+    ) -> float:
         """
         Calculate content similarity for lightweight mode
         Compares the actual content of added/modified lines
         """
         # Extract actual changed content
-        gt_content = set(gt_tokens['added'] + [m.split(' -> ')[1] for m in gt_tokens['modified']])
-        pred_content = set(pred_tokens['added'] + [m.split(' -> ')[1] for m in pred_tokens['modified']])
+        gt_content = set(
+            gt_tokens["added"] + [m.split(" -> ")[1] for m in gt_tokens["modified"]]
+        )
+        pred_content = set(
+            pred_tokens["added"] + [m.split(" -> ")[1] for m in pred_tokens["modified"]]
+        )
 
         # Token-level comparison
         gt_all_tokens = set()
@@ -821,27 +907,27 @@ class ASTEditSimilarity:
 
     def _tokenize(self, before: str, after: str) -> Dict[str, List[str]]:
         """Extract added/removed/modified tokens"""
-        before_lines = before.strip().split('\n')
-        after_lines = after.strip().split('\n')
+        before_lines = before.strip().split("\n")
+        after_lines = after.strip().split("\n")
 
         differ = difflib.Differ()
         diff = list(differ.compare(before_lines, after_lines))
 
-        added = [line[2:] for line in diff if line.startswith('+ ')]
-        removed = [line[2:] for line in diff if line.startswith('- ')]
+        added = [line[2:] for line in diff if line.startswith("+ ")]
+        removed = [line[2:] for line in diff if line.startswith("- ")]
         modified = []
 
         # Detect modifications (removed + added pairs)
         i = 0
         while i < len(diff):
             if i < len(diff) - 1:
-                if diff[i].startswith('- ') and diff[i + 1].startswith('+ '):
+                if diff[i].startswith("- ") and diff[i + 1].startswith("+ "):
                     modified.append(f"{diff[i][2:]} -> {diff[i + 1][2:]}")
                     i += 2
                     continue
             i += 1
 
-        return {'added': added, 'removed': removed, 'modified': modified}
+        return {"added": added, "removed": removed, "modified": modified}
 
     def _operation_similarity(self, ops1: List[Dict], ops2: List[Dict]) -> float:
         """Calculate similarity between two operation lists"""
@@ -857,7 +943,9 @@ class ASTEditSimilarity:
 
         return intersection / union if union > 0 else 0.0
 
-    def _match_operations(self, ops1: List[Dict], ops2: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
+    def _match_operations(
+        self, ops1: List[Dict], ops2: List[Dict]
+    ) -> Tuple[List[Dict], List[Dict]]:
         """
         Find matching operations between two operation lists
         Returns matched operation pairs
@@ -867,10 +955,10 @@ class ASTEditSimilarity:
         # Create operation signature for matching
         def op_signature(op):
             """Create a signature for matching operations"""
-            op_type = op.get('type')
-            path = op.get('path', [])
+            op_type = op.get("type")
+            path = op.get("path", [])
             # Use first 3 levels of path for matching (more flexible)
-            path_key = '.'.join(map(str, path[:3]))
+            path_key = ".".join(map(str, path[:3]))
             return f"{op_type}:{path_key}"
 
         # Build index for ops2
@@ -928,15 +1016,15 @@ class ASTEditSimilarity:
             return 1.0
 
         # Join content for comparison
-        gt_code = ' '.join(gt_content)
-        pred_code = ' '.join(pred_content)
+        gt_code = " ".join(gt_content)
+        pred_code = " ".join(pred_content)
 
         # Method 1: Token-level similarity
         token_sim = self._token_similarity(gt_content, pred_content)
 
         # Method 2: BLEU score on matched content
         bleu_result = CodeBLEUCalculator.compute_bleu(gt_code, pred_code)
-        bleu_sim = bleu_result['bleu']
+        bleu_sim = bleu_result["bleu"]
 
         # Method 3: Semantic similarity (operation types and values)
         semantic_sim = self._semantic_operation_similarity_matched(matched_pairs)
@@ -948,18 +1036,20 @@ class ASTEditSimilarity:
 
     def _extract_op_content(self, op: Dict) -> str:
         """Extract content text from an operation"""
-        op_type = op.get('type')
+        op_type = op.get("type")
 
-        if op_type == 'insert':
-            return str(op.get('node', ''))
-        elif op_type == 'update':
+        if op_type == "insert":
+            return str(op.get("node", ""))
+        elif op_type == "update":
             return f"{op.get('from', '')} {op.get('to', '')}"
-        elif op_type == 'delete':
-            return str(op.get('node', ''))
+        elif op_type == "delete":
+            return str(op.get("node", ""))
 
-        return ''
+        return ""
 
-    def _semantic_operation_similarity_matched(self, matched_pairs: List[Tuple[Dict, Dict]]) -> float:
+    def _semantic_operation_similarity_matched(
+        self, matched_pairs: List[Tuple[Dict, Dict]]
+    ) -> float:
         """
         Calculate semantic similarity for matched operation pairs
         """
@@ -996,12 +1086,12 @@ class ASTEditSimilarity:
         """Extract actual content changes from operations"""
         content = []
         for op in ops:
-            op_type = op.get('type')
-            if op_type == 'insert':
-                content.append(str(op.get('node', '')))
-            elif op_type == 'update':
+            op_type = op.get("type")
+            if op_type == "insert":
+                content.append(str(op.get("node", "")))
+            elif op_type == "update":
                 content.append(f"{op.get('from', '')}->{op.get('to', '')}")
-            elif op_type == 'delete':
+            elif op_type == "delete":
                 content.append(f"DEL:{op.get('node', '')}")
         return content
 
@@ -1011,8 +1101,8 @@ class ASTEditSimilarity:
             return 1.0
 
         # Flatten and tokenize
-        tokens1 = set(' '.join(content1).split())
-        tokens2 = set(' '.join(content2).split())
+        tokens1 = set(" ".join(content1).split())
+        tokens2 = set(" ".join(content2).split())
 
         if not tokens1 and not tokens2:
             return 1.0
@@ -1022,7 +1112,9 @@ class ASTEditSimilarity:
 
         return intersection / union if union > 0 else 0.0
 
-    def _semantic_operation_similarity(self, ops1: List[Dict], ops2: List[Dict]) -> float:
+    def _semantic_operation_similarity(
+        self, ops1: List[Dict], ops2: List[Dict]
+    ) -> float:
         """
         Calculate semantic similarity of operations
         Considers operation type, target attributes, and value changes
@@ -1062,7 +1154,9 @@ class ASTEditSimilarity:
 
         return matching_score / len(all_keys) if all_keys else 0.0
 
-    def _structural_operation_similarity(self, ops1: List[Dict], ops2: List[Dict]) -> float:
+    def _structural_operation_similarity(
+        self, ops1: List[Dict], ops2: List[Dict]
+    ) -> float:
         """
         Calculate structural similarity considering operation depth and order
         """
@@ -1073,7 +1167,7 @@ class ASTEditSimilarity:
         def get_patterns(ops):
             patterns = []
             for op in ops:
-                path = op.get('path', [])
+                path = op.get("path", [])
                 depth = len(path)
                 patterns.append(f"{op['type']}@{depth}")
             return patterns
@@ -1107,7 +1201,7 @@ class ASTEditSimilarity:
             counts = {}
 
         if isinstance(ast, dict):
-            node_type = ast.get('type', 'unknown')
+            node_type = ast.get("type", "unknown")
             counts[node_type] = counts.get(node_type, 0) + 1
 
             for value in ast.values():
@@ -1146,16 +1240,13 @@ function Button() {
     calculator = ASTEditSimilarity(use_lightweight_parser=False)
 
     results = calculator.calculate(
-        before_code=before_code,
-        gt_code=gt_code,
-        pred_code=pred_code,
-        file_type='jsx'
+        before_code=before_code, gt_code=gt_code, pred_code=pred_code, file_type="jsx"
     )
 
-    print("AST Edit Similarity Results:")
-    print(f"  AST-TED (Tree Edit Distance):  {results['ast_ted']:.4f}")
-    print(f"  AST-OP (Operation Matching):   {results['ast_op']:.4f}")
-    print(f"  AST-ES (Combined):             {results['ast_es']:.4f}")
+    logger.info("AST Edit Similarity Results:")
+    logger.info(f"  AST-TED (Tree Edit Distance):  {results['ast_ted']:.4f}")
+    logger.info(f"  AST-OP (Operation Matching):   {results['ast_op']:.4f}")
+    logger.info(f"  AST-ES (Combined):             {results['ast_es']:.4f}")
 
     return results
 
@@ -1180,43 +1271,43 @@ def ast_code_similarity(src_code, reference_code, generated_code, framework):
         "vue": "vue",
         "react": "jsx",
         "vanilla": "html",
-        "angular": "angular"
-
+        "angular": "angular",
     }
 
     results = calculator.calculate(
         before_code=src_code,
         gt_code=reference_code,
         pred_code=generated_code,
-        file_type=framework_filetype_dic[framework]
+        file_type=framework_filetype_dic[framework],
     )
 
-    print("\n" + "=" * 70)
-    print("AST Edit Similarity Results (CodeBLEU on Matched Operations)")
-    print("=" * 70)
-    print(f"  AST-TED (Tree Edit Distance):     {results['ast_ted']:.4f}")
-    print(f"  AST-OP (Operation Matching):      {results['ast_op']:.4f}")
-    print(f"    - Matched operations:            {results['matched_ops']}")
-    print(f"    - Total GT operations:           {results['total_gt_ops']}")
-    print(f"    - Total Pred operations:         {results['total_pred_ops']}")
-    print("-" * 70)
-    print("BLEU Scores (on matched operations only):")
-    print(f"  BLEU:                             {results['bleu']:.4f}")
-    print(f"  BLEU-4:                           {results['bleu-4']:.4f}")
-    print("-" * 70)
-    print("CodeBLEU Components (on matched operations only):")
-    print(f"  CodeBLEU:                         {results['codebleu']:.4f}")
-    print(f"  N-gram Match:                     {results['ngram_match']:.4f}")
-    print(f"  Syntax Match:                     {results['syntax_match']:.4f}")
-    print(f"  Dataflow Match:                   {results['dataflow_match']:.4f}")
-    print("-" * 70)
-    print(f"  AST-MCS (Modified Content):       {results['ast_mcs']:.4f}")
-    print(f"  AST-ES (Combined Score):          {results['ast_es']:.4f}")
-    print("=" * 70 + "\n")
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("AST Edit Similarity Results (CodeBLEU on Matched Operations)")
+    logger.info("=" * 70)
+    logger.info(f"  AST-TED (Tree Edit Distance):     {results['ast_ted']:.4f}")
+    logger.info(f"  AST-OP (Operation Matching):      {results['ast_op']:.4f}")
+    logger.info(f"    - Matched operations:            {results['matched_ops']}")
+    logger.info(f"    - Total GT operations:           {results['total_gt_ops']}")
+    logger.info(f"    - Total Pred operations:         {results['total_pred_ops']}")
+    logger.info("-" * 70)
+    logger.info("BLEU Scores (on matched operations only):")
+    logger.info(f"  BLEU:                             {results['bleu']:.4f}")
+    logger.info(f"  BLEU-4:                           {results['bleu-4']:.4f}")
+    logger.info("-" * 70)
+    logger.info("CodeBLEU Components (on matched operations only):")
+    logger.info(f"  CodeBLEU:                         {results['codebleu']:.4f}")
+    logger.info(f"  N-gram Match:                     {results['ngram_match']:.4f}")
+    logger.info(f"  Syntax Match:                     {results['syntax_match']:.4f}")
+    logger.info(f"  Dataflow Match:                   {results['dataflow_match']:.4f}")
+    logger.info("-" * 70)
+    logger.info(f"  AST-MCS (Modified Content):       {results['ast_mcs']:.4f}")
+    logger.info(f"  AST-ES (Combined Score):          {results['ast_es']:.4f}")
+    logger.info("=" * 70)
+    logger.info("")
 
     # return results
-    return results['ast_op'], results['ast_mcs']
-
+    return results["ast_op"], results["ast_mcs"]
 
 
 def compute_edit_bleu(src_code, reference_code, generated_code):
@@ -1240,16 +1331,17 @@ def compute_edit_bleu(src_code, reference_code, generated_code):
     # Calculate BLEU
     bleu_results = CodeBLEUCalculator.compute_bleu(gt_modified, pred_modified)
 
-    print("\n" + "=" * 60)
-    print("BLEU Scores on Modified Code:")
-    print("=" * 60)
-    print(f"  BLEU:      {bleu_results['bleu']:.4f}")
-    print(f"  BLEU-1:    {bleu_results['bleu-1']:.4f}")
-    print(f"  BLEU-2:    {bleu_results['bleu-2']:.4f}")
-    print(f"  BLEU-3:    {bleu_results['bleu-3']:.4f}")
-    print(f"  BLEU-4:    {bleu_results['bleu-4']:.4f}")
-    print(f"  BP:        {bleu_results['bp']:.4f}")
-    print("=" * 60 + "\n")
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("BLEU Scores on Modified Code:")
+    logger.info("=" * 60)
+    logger.info(f"  BLEU:      {bleu_results['bleu']:.4f}")
+    logger.info(f"  BLEU-1:    {bleu_results['bleu-1']:.4f}")
+    logger.info(f"  BLEU-2:    {bleu_results['bleu-2']:.4f}")
+    logger.info(f"  BLEU-3:    {bleu_results['bleu-3']:.4f}")
+    logger.info(f"  BLEU-4:    {bleu_results['bleu-4']:.4f}")
+    logger.info(f"  BP:        {bleu_results['bp']:.4f}")
+    logger.info("=" * 60 + "\n")
 
     return bleu_results
 
@@ -1273,13 +1365,12 @@ def compute_edit_codebleu(src_code, reference_code, generated_code):
     pred_modified = calculator._extract_modified_code(src_code, generated_code)
 
     # Parse ASTs
-    gt_ast = calculator.parser.parse(reference_code, 'jsx')
-    pred_ast = calculator.parser.parse(generated_code, 'jsx')
+    gt_ast = calculator.parser.parse(reference_code, "jsx")
+    pred_ast = calculator.parser.parse(generated_code, "jsx")
 
     # Calculate CodeBLEU
     codebleu_results = CodeBLEUCalculator.compute_codebleu(
-        gt_modified, pred_modified,
-        gt_ast, pred_ast
+        gt_modified, pred_modified, gt_ast, pred_ast
     )
 
     print("\n" + "=" * 60)
